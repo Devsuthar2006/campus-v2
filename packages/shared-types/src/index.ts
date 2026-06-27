@@ -8,3 +8,4 @@ export * from './api';
 export * from './pagination';
 export * from './auth';
 export * from './profile';
+export * from './matching';

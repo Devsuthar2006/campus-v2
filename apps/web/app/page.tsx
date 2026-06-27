@@ -28,6 +28,14 @@ export default function HomePage() {
       </div>
 
       <div className="grid grid-cols-1 gap-space-4 sm:grid-cols-2">
+        <Link href="/match">
+          <Card className="h-full transition-colors hover:bg-muted">
+            <CardTitle>Meet someone</CardTitle>
+            <CardDescription>
+              Get paired with a verified student for an anonymous chat.
+            </CardDescription>
+          </Card>
+        </Link>
         <Link href="/profile">
           <Card className="h-full transition-colors hover:bg-muted">
             <CardTitle>Your profile</CardTitle>

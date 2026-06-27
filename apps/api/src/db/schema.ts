@@ -19,6 +19,8 @@ import {
   text,
   smallint,
   boolean,
+  integer,
+  jsonb,
   timestamp,
   unique,
   index,
@@ -328,3 +330,109 @@ export const privacySettings = pgTable(
 export type ProfileRow = typeof profiles.$inferSelect;
 export type PrivacySettingsRow = typeof privacySettings.$inferSelect;
 export type InterestRow = typeof interests.$inferSelect;
+
+// ---------------------------------------------------------------------------
+// Anonymous Matching module (DATABASE_SCHEMA.md §7) — Phase 03
+// ---------------------------------------------------------------------------
+
+export const matchQueueStatusEnum = pgEnum('match_queue_status', [
+  'waiting',
+  'matched',
+  'cancelled',
+]);
+
+export const anonSessionStatusEnum = pgEnum('anon_session_status', ['active', 'ended', 'expired']);
+
+export const sessionEndReasonEnum = pgEnum('session_end_reason', [
+  'left',
+  'disconnect',
+  'expired',
+  'reported',
+]);
+
+/** match_queue (§7.1) — persisted waiting users for recovery + stale cleanup. */
+export const matchQueue = pgTable(
+  'match_queue',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    universityId: uuid('university_id')
+      .notNull()
+      .references(() => universities.id),
+    status: matchQueueStatusEnum('status').notNull().default('waiting'),
+    preferences: jsonb('preferences'),
+    lastHeartbeatAt: timestamp('last_heartbeat_at', { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    userUnique: unique('uq_match_queue_user').on(t.userId),
+    waitingIdx: index('idx_match_queue_waiting').on(t.universityId, t.createdAt),
+    heartbeatIdx: index('idx_match_queue_heartbeat').on(t.lastHeartbeatAt),
+  }),
+);
+
+/** anon_sessions (§7.2) — an anonymous session between matched users. */
+export const anonSessions = pgTable(
+  'anon_sessions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    universityId: uuid('university_id')
+      .notNull()
+      .references(() => universities.id),
+    status: anonSessionStatusEnum('status').notNull().default('active'),
+    startedAt: timestamp('started_at', { withTimezone: true }).notNull().defaultNow(),
+    endedAt: timestamp('ended_at', { withTimezone: true }),
+    endReason: sessionEndReasonEnum('end_reason'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    startedIdx: index('idx_anon_sessions_started').on(t.startedAt),
+  }),
+);
+
+/** session_participants (§7.3) — the (two) users in a session. */
+export const sessionParticipants = pgTable(
+  'session_participants',
+  {
+    sessionId: uuid('session_id')
+      .notNull()
+      .references(() => anonSessions.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    leftAt: timestamp('left_at', { withTimezone: true }),
+    sentFriendRequest: boolean('sent_friend_request').notNull().default(false),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.sessionId, t.userId] }),
+    userIdx: index('idx_session_participants_user').on(t.userId),
+  }),
+);
+
+/** match_history (§7.4) — completed-match summary for analytics + rematch rules. */
+export const matchHistory = pgTable(
+  'match_history',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    sessionId: uuid('session_id').references(() => anonSessions.id, { onDelete: 'set null' }),
+    userA: uuid('user_a')
+      .notNull()
+      .references(() => users.id),
+    userB: uuid('user_b')
+      .notNull()
+      .references(() => users.id),
+    durationSeconds: integer('duration_seconds'),
+    becameFriends: boolean('became_friends').notNull().default(false),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    userAIdx: index('idx_match_history_user_a').on(t.userA, t.createdAt),
+    userBIdx: index('idx_match_history_user_b').on(t.userB, t.createdAt),
+  }),
+);
+
+export type AnonSessionRow = typeof anonSessions.$inferSelect;
+export type MatchQueueRow = typeof matchQueue.$inferSelect;

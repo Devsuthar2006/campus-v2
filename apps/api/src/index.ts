@@ -4,6 +4,7 @@ import { createSocketServer } from './realtime/socketServer.js';
 import { config } from './config/env.js';
 import { logger } from './config/logger.js';
 import { closeDatabase } from './db/client.js';
+import { matchingService } from './services/matchingService.js';
 
 /**
  * API entrypoint. Express and Socket.IO share one HTTP server / process
@@ -12,7 +13,10 @@ import { closeDatabase } from './db/client.js';
 async function main(): Promise<void> {
   const app = createApp();
   const httpServer = createServer(app);
-  const io = createSocketServer(httpServer);
+  createSocketServer(httpServer);
+
+  // Recover matching state before accepting connections (MATCHING_ENGINE.md §5.9).
+  await matchingService.recover();
 
   httpServer.listen(config.PORT, () => {
     logger.info({ port: config.PORT, env: config.NODE_ENV }, 'Campusly API listening');
@@ -20,7 +24,6 @@ async function main(): Promise<void> {
 
   const shutdown = async (signal: string): Promise<void> => {
     logger.info({ signal }, 'Shutting down');
-    io.close();
     httpServer.close();
     await closeDatabase();
     process.exit(0);

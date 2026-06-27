@@ -15,6 +15,13 @@
       "when": 1782529243922,
       "tag": "0001_calm_vance_astro",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1782531613647,
+      "tag": "0002_wise_quasar",
+      "breakpoints": true
     }
   ]
 }
