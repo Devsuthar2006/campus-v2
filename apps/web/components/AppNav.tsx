@@ -24,8 +24,11 @@ export function AppNav() {
   return (
     <header className="flex items-center justify-between gap-space-4">
       <nav className="flex items-center gap-space-4">
-        <Link href="/" className="text-h3 font-semibold text-brand">
-          Campusly
+        <Link
+          href="/wall"
+          className="font-display text-h3 font-bold tracking-tight text-foreground"
+        >
+          Campus<span className="text-brand">ly</span>
         </Link>
         <Link href="/wall" className="text-body text-muted-foreground hover:text-foreground">
           Wall

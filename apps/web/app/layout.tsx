@@ -1,10 +1,17 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter } from 'next/font/google';
+import { Inter, Sora } from 'next/font/google';
 import { Providers } from './providers';
 import '../styles/globals.css';
 
 // Inter — recommended typeface (UI_GUIDELINES.md §5), exposed as a CSS variable.
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' });
+// Sora — premium display face used for the brand wordmark / landing headlines.
+const sora = Sora({
+  subsets: ['latin'],
+  weight: ['600', '700', '800'],
+  variable: '--font-display',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: 'Campusly',
@@ -19,7 +26,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning className={inter.variable}>
+    <html lang="en" suppressHydrationWarning className={`${inter.variable} ${sora.variable}`}>
       <body>
         <Providers>{children}</Providers>
       </body>

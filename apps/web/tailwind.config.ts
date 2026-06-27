@@ -34,6 +34,7 @@ const config: Config = {
       },
       fontFamily: {
         sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
+        display: ['var(--font-display)', 'var(--font-inter)', 'system-ui', 'sans-serif'],
       },
       fontSize: {
         // Typography scale (§5).
@@ -43,6 +44,8 @@ const config: Config = {
         body: ['1rem', { lineHeight: '1.5', fontWeight: '400' }],
         caption: ['0.875rem', { lineHeight: '1.4', fontWeight: '400' }],
         small: ['0.75rem', { lineHeight: '1.3', fontWeight: '500' }],
+        // Landing display sizes.
+        display: ['clamp(3rem, 12vw, 8rem)', { lineHeight: '0.95', fontWeight: '800' }],
       },
       borderRadius: {
         // Corner radius scale (§7): 6–8–12–16.

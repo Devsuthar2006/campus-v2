@@ -23,8 +23,8 @@ export default function SignInPage() {
       setPending(true);
       loginWithGoogle(credential)
         .then((user) => {
-          // Incomplete profiles finish onboarding; verified users go home (Phase 02).
-          router.replace(user.profileComplete ? '/' : '/onboarding');
+          // Incomplete profiles finish onboarding; verified users enter the app.
+          router.replace(user.profileComplete ? '/wall' : '/onboarding');
         })
         .catch((err: unknown) => {
           setError(
@@ -42,7 +42,9 @@ export default function SignInPage() {
     <main className="flex min-h-screen items-center justify-center px-space-4">
       <Card className="flex w-full max-w-sm flex-col items-center gap-space-6 py-space-10 text-center">
         <div className="flex flex-col gap-space-2">
-          <span className="text-h2 font-semibold text-brand">Campusly</span>
+          <span className="font-display text-h1 font-extrabold tracking-tight text-foreground">
+            Campus<span className="text-brand">ly</span>
+          </span>
           <CardTitle>Welcome to your campus</CardTitle>
           <CardDescription>
             Sign in with your college Google account. Campusly is for verified students only.
