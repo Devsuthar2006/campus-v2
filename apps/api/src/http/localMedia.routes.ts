@@ -59,6 +59,11 @@ if (config.MEDIA_DRIVER === 'local') {
     }
     res.setHeader('Content-Type', token.mime);
     res.setHeader('Cache-Control', 'private, max-age=300');
+    // Allow the web app (different port/origin in dev) to load these bytes as an
+    // <img>/<audio>/<video> resource. Helmet's global default is 'same-origin',
+    // which would block cross-origin media display. Production serves media from
+    // object storage directly, so this only applies to the local dev driver.
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
     const stream = createReadStream(abs);
     stream.on('error', () => {
       if (!res.headersSent) {
