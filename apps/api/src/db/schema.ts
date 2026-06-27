@@ -681,3 +681,284 @@ export const messageAttachments = pgTable(
 
 export type MediaAssetRow = typeof mediaAssets.$inferSelect;
 export type MessageAttachmentRow = typeof messageAttachments.$inferSelect;
+
+// ---------------------------------------------------------------------------
+// Campus Wall module (DATABASE_SCHEMA.md §10) — Phase 07
+// The public, campus-scoped feed. Read-heavy; optimized for paginated reads and
+// maintained counters. Anonymous posts always retain author_id (accountability).
+// ---------------------------------------------------------------------------
+
+export const wallPostTypeEnum = pgEnum('wall_post_type', ['text', 'poll', 'announcement']);
+export const contentStatusEnum = pgEnum('content_status', ['visible', 'hidden', 'removed']);
+export const reactionTargetEnum = pgEnum('reaction_target_type', [
+  'wall_post',
+  'wall_reply',
+  'community_post',
+]);
+export const reactionTypeEnum = pgEnum('reaction_type', [
+  'like',
+  'love',
+  'laugh',
+  'insightful',
+  'support',
+]);
+
+/** wall_categories (§10.5) — global (university_id null) or per-campus. */
+export const wallCategories = pgTable(
+  'wall_categories',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    universityId: uuid('university_id').references(() => universities.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    slug: text('slug').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    slugUnique: unique('uq_wall_categories_slug').on(t.universityId, t.slug),
+  }),
+);
+
+/** wall_posts (§10.1) — a public campus post (named or anonymous). */
+export const wallPosts = pgTable(
+  'wall_posts',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    universityId: uuid('university_id')
+      .notNull()
+      .references(() => universities.id),
+    authorId: uuid('author_id')
+      .notNull()
+      .references(() => users.id), // always retained, even for anonymous (§7)
+    isAnonymous: boolean('is_anonymous').notNull().default(false),
+    categoryId: uuid('category_id').references(() => wallCategories.id, { onDelete: 'set null' }),
+    postType: wallPostTypeEnum('post_type').notNull().default('text'),
+    body: text('body'),
+    replyCount: integer('reply_count').notNull().default(0),
+    reactionCount: integer('reaction_count').notNull().default(0),
+    isPinned: boolean('is_pinned').notNull().default(false),
+    status: contentStatusEnum('status').notNull().default('visible'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+  },
+  (t) => ({
+    feedIdx: index('idx_wall_posts_feed')
+      .on(t.universityId, t.createdAt)
+      .where(sql`status = 'visible' and deleted_at is null`),
+    authorIdx: index('idx_wall_posts_author').on(t.authorId),
+    categoryIdx: index('idx_wall_posts_category').on(t.categoryId),
+  }),
+);
+
+/** wall_replies (§10.2) — one-level reply to a post. */
+export const wallReplies = pgTable(
+  'wall_replies',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    postId: uuid('post_id')
+      .notNull()
+      .references(() => wallPosts.id, { onDelete: 'cascade' }),
+    authorId: uuid('author_id')
+      .notNull()
+      .references(() => users.id),
+    isAnonymous: boolean('is_anonymous').notNull().default(false),
+    body: text('body').notNull(),
+    reactionCount: integer('reaction_count').notNull().default(0),
+    status: contentStatusEnum('status').notNull().default('visible'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+  },
+  (t) => ({
+    postIdx: index('idx_wall_replies_post').on(t.postId, t.createdAt),
+  }),
+);
+
+/** reactions (§10.3) — single polymorphic table for posts/replies. */
+export const reactions = pgTable(
+  'reactions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    targetType: reactionTargetEnum('target_type').notNull(),
+    targetId: uuid('target_id').notNull(), // polymorphic; app-enforced integrity
+    type: reactionTypeEnum('type').notNull().default('like'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    onegPerTarget: unique('uq_reactions_user_target').on(t.userId, t.targetType, t.targetId),
+    targetIdx: index('idx_reactions_target').on(t.targetType, t.targetId),
+  }),
+);
+
+/** bookmarks (§10.4) — private saved posts. */
+export const bookmarks = pgTable(
+  'bookmarks',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    postId: uuid('post_id')
+      .notNull()
+      .references(() => wallPosts.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.userId, t.postId] }),
+    userIdx: index('idx_bookmarks_user').on(t.userId, t.createdAt),
+  }),
+);
+
+/** tags (§10.6) — normalized tag vocabulary. */
+export const tags = pgTable(
+  'tags',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    name: text('name').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({ nameUnique: unique('uq_tags_name').on(t.name) }),
+);
+
+/** post_tags (§10.7) — many-to-many post↔tag join. */
+export const postTags = pgTable(
+  'post_tags',
+  {
+    postId: uuid('post_id')
+      .notNull()
+      .references(() => wallPosts.id, { onDelete: 'cascade' }),
+    tagId: uuid('tag_id')
+      .notNull()
+      .references(() => tags.id, { onDelete: 'cascade' }),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.postId, t.tagId] }),
+    tagIdx: index('idx_post_tags_tag').on(t.tagId),
+  }),
+);
+
+/** trending_posts (§10.8) — materialized time-decayed ranking (read cheaply). */
+export const trendingPosts = pgTable('trending_posts', {
+  postId: uuid('post_id')
+    .primaryKey()
+    .references(() => wallPosts.id, { onDelete: 'cascade' }),
+  universityId: uuid('university_id')
+    .notNull()
+    .references(() => universities.id),
+  score: integer('score').notNull().default(0),
+  computedAt: timestamp('computed_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** post_media (§10.9) — post↔media join, mirrors message_attachments. */
+export const postMedia = pgTable(
+  'post_media',
+  {
+    postId: uuid('post_id')
+      .notNull()
+      .references(() => wallPosts.id, { onDelete: 'cascade' }),
+    mediaId: uuid('media_id')
+      .notNull()
+      .references(() => mediaAssets.id, { onDelete: 'restrict' }),
+    position: smallint('position').notNull().default(0),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({ pk: primaryKey({ columns: [t.postId, t.mediaId] }) }),
+);
+
+/**
+ * Poll storage (PUBLIC_WALL.md §3 "Poll: native voting; option limits enforced").
+ * The schema enumerates `poll` as a post_type; these tables implement its native
+ * voting (one vote per user per poll, changeable).
+ */
+export const wallPollOptions = pgTable(
+  'wall_poll_options',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    postId: uuid('post_id')
+      .notNull()
+      .references(() => wallPosts.id, { onDelete: 'cascade' }),
+    text: text('text').notNull(),
+    position: smallint('position').notNull().default(0),
+    voteCount: integer('vote_count').notNull().default(0),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({ postIdx: index('idx_wall_poll_options_post').on(t.postId) }),
+);
+
+export const wallPollVotes = pgTable(
+  'wall_poll_votes',
+  {
+    postId: uuid('post_id')
+      .notNull()
+      .references(() => wallPosts.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    optionId: uuid('option_id')
+      .notNull()
+      .references(() => wallPollOptions.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({ pk: primaryKey({ columns: [t.postId, t.userId] }) }),
+);
+
+export type WallPostRow = typeof wallPosts.$inferSelect;
+export type WallReplyRow = typeof wallReplies.$inferSelect;
+export type WallCategoryRow = typeof wallCategories.$inferSelect;
+export type ReactionRow = typeof reactions.$inferSelect;
+export type WallPollOptionRow = typeof wallPollOptions.$inferSelect;
+
+// ---------------------------------------------------------------------------
+// Moderation hook (DATABASE_SCHEMA.md §15.1) — Phase 07 wires report creation;
+// the moderation tooling (actions, queue, appeals) lands in Phase 12.
+// ---------------------------------------------------------------------------
+
+export const reportTargetEnum = pgEnum('report_target_type', [
+  'user',
+  'wall_post',
+  'wall_reply',
+  'community_post',
+  'message',
+  'marketplace_item',
+  'lost_found_item',
+]);
+export const reportReasonEnum = pgEnum('report_reason', [
+  'spam',
+  'harassment',
+  'hate',
+  'nsfw',
+  'safety',
+  'other',
+]);
+export const reportStatusEnum = pgEnum('report_status', [
+  'open',
+  'reviewing',
+  'resolved',
+  'dismissed',
+]);
+
+/** reports (§15.1) — user-filed report against content or a user. */
+export const reports = pgTable(
+  'reports',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    reporterId: uuid('reporter_id').references(() => users.id, { onDelete: 'set null' }),
+    targetType: reportTargetEnum('target_type').notNull(),
+    targetId: uuid('target_id').notNull(),
+    reason: reportReasonEnum('reason').notNull(),
+    details: text('details'),
+    status: reportStatusEnum('status').notNull().default('open'),
+    resolvedBy: uuid('resolved_by').references(() => users.id, { onDelete: 'set null' }),
+    resolvedAt: timestamp('resolved_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    queueIdx: index('idx_reports_queue')
+      .on(t.createdAt)
+      .where(sql`status in ('open','reviewing')`),
+    targetIdx: index('idx_reports_target').on(t.targetType, t.targetId),
+  }),
+);
+
+export type ReportRow = typeof reports.$inferSelect;

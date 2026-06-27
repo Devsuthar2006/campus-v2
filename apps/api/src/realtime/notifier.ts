@@ -17,6 +17,11 @@ class Notifier {
   emitToUser(userId: string, event: string, payload: unknown): void {
     this.io?.to(`user:${userId}`).emit(event, payload);
   }
+
+  /** Emit an event to an arbitrary room (e.g. `campus:<universityId>`). */
+  emitToRoom(room: string, event: string, payload: unknown): void {
+    this.io?.to(room).emit(event, payload);
+  }
 }
 
 export const notifier = new Notifier();

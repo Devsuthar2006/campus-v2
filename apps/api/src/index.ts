@@ -6,6 +6,8 @@ import { logger } from './config/logger.js';
 import { closeDatabase } from './db/client.js';
 import { matchingService } from './services/matchingService.js';
 import { mediaService } from './services/mediaService.js';
+import { startTrendingJob, DEFAULT_WALL_CATEGORIES } from './services/wallService.js';
+import { wallRepository } from './repositories/wallRepository.js';
 
 /**
  * API entrypoint. Express and Socket.IO share one HTTP server / process
@@ -21,6 +23,10 @@ async function main(): Promise<void> {
 
   // Begin temporary-media expiry/cleanup sweeps (MEDIA_SYSTEM.md §5).
   mediaService.startCleanup();
+
+  // Seed global wall categories (PUBLIC_WALL.md §4) and start trending job (§10.8).
+  await wallRepository.ensureGlobalCategories(DEFAULT_WALL_CATEGORIES);
+  startTrendingJob();
 
   httpServer.listen(config.PORT, () => {
     logger.info({ port: config.PORT, env: config.NODE_ENV }, 'Campusly API listening');
