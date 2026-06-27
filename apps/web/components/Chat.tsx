@@ -30,6 +30,7 @@ export function Chat({
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
   const [recording, setRecording] = useState(false);
+  const [mediaError, setMediaError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -50,21 +51,32 @@ export function Chat({
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
+    setMediaError(null);
     setBusy(true);
     try {
       const media = await mediaApi.upload(file, 'image');
       sendMedia(media.id, 'image');
     } catch {
-      // surfaced via disabled state reset; intentionally quiet for MVP
+      setMediaError('Could not send that image. Please try again.');
     } finally {
       setBusy(false);
     }
   };
 
   const startRecording = async () => {
+    setMediaError(null);
+    if (typeof MediaRecorder === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+      setMediaError('Voice messages are not supported in this browser.');
+      return;
+    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
+      // Pick a format this browser can actually record (Safari uses mp4, not webm).
+      const candidates = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg'];
+      const supported = candidates.find((t) => MediaRecorder.isTypeSupported?.(t));
+      const recorder = supported
+        ? new MediaRecorder(stream, { mimeType: supported })
+        : new MediaRecorder(stream);
       chunksRef.current = [];
       recorder.ondataavailable = (ev) => {
         if (ev.data.size > 0) chunksRef.current.push(ev.data);
@@ -72,12 +84,15 @@ export function Chat({
       recorder.onstop = () => {
         stream.getTracks().forEach((t) => t.stop());
         const durationMs = Date.now() - startedAtRef.current;
-        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        // Use the recorder's actual mime (minus codec params) so the stored
+        // content-type matches the real bytes and plays back everywhere.
+        const mime = (recorder.mimeType || 'audio/webm').split(';')[0];
+        const blob = new Blob(chunksRef.current, { type: mime });
         setBusy(true);
         mediaApi
           .upload(blob, 'voice', durationMs)
           .then((media) => sendMedia(media.id, 'voice', durationMs))
-          .catch(() => {})
+          .catch(() => setMediaError('Could not send that voice message. Please try again.'))
           .finally(() => setBusy(false));
       };
       recorderRef.current = recorder;
@@ -85,7 +100,7 @@ export function Chat({
       recorder.start();
       setRecording(true);
     } catch {
-      // microphone unavailable / denied — ignore for MVP
+      setMediaError('Microphone access was blocked. Allow it and try again.');
     }
   };
 
@@ -135,6 +150,12 @@ export function Chat({
         {partnerTyping && <p className="mt-space-2 text-caption text-muted-foreground">typing…</p>}
         <div ref={endRef} />
       </div>
+
+      {mediaError && (
+        <p className="px-space-1 pt-space-2 text-caption text-danger" role="alert">
+          {mediaError}
+        </p>
+      )}
 
       <form
         className="flex items-center gap-space-2 border-t border-border pt-space-3"
