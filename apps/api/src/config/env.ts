@@ -40,6 +40,22 @@ const EnvSchema = z.object({
     .enum(['true', 'false'])
     .default('false')
     .transform((v) => v === 'true'),
+
+  // Media (MEDIA_SYSTEM.md, ARCHITECTURE.md §9). Bytes live in object storage;
+  // only references live in PostgreSQL. The 'local' driver is a dev stand-in for
+  // Oracle Object Storage that stores bytes on disk and serves them via signed,
+  // short-lived URLs (production uses an S3-compatible OCI driver).
+  MEDIA_DRIVER: z.enum(['local', 's3']).default('local'),
+  /** Secret used to sign local upload/download URLs (dev driver only). */
+  MEDIA_SIGNING_SECRET: z.string().min(16).default('dev-only-media-signing-secret-change'),
+  /** On-disk directory for the local media driver. */
+  MEDIA_LOCAL_DIR: z.string().default('.media-storage'),
+  /** Public base URL the client uses to reach signed media endpoints. */
+  MEDIA_PUBLIC_BASE_URL: z.string().url().default('http://localhost:4000'),
+  /** Signed-URL validity in seconds (short-lived — MEDIA_SYSTEM.md §9). */
+  MEDIA_URL_TTL_SECONDS: z.coerce.number().int().positive().default(600),
+  /** Temporary-media retention before expiry/cleanup, in hours (~48h). */
+  MEDIA_TEMP_TTL_HOURS: z.coerce.number().int().positive().default(48),
 });
 
 function loadConfig() {

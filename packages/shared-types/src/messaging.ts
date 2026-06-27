@@ -20,6 +20,17 @@ export interface ChatMessage {
   type: MessageType;
   body: string | null;
   createdAt: string;
+  /** Present for voice/image/video messages (media reference, never bytes). */
+  attachment?: ChatAttachment | null;
+}
+
+/** A media reference attached to a message (MEDIA_SYSTEM.md §6–7). */
+export interface ChatAttachment {
+  mediaId: string;
+  kind: 'image' | 'voice' | 'video' | 'avatar' | 'document';
+  mimeType: string;
+  durationMs: number | null;
+  expiresAt: string | null;
 }
 
 /** Client → server socket events. */

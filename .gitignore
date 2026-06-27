@@ -36,3 +36,6 @@ coverage/
 *.local
 .turbo/
 .cache/
+
+# Local dev media storage (object storage stand-in; bytes never committed)
+.media-storage/

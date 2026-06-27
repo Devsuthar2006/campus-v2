@@ -18,7 +18,8 @@ export const messagingRepository = {
     contextType: MessageContextType;
     contextId: string;
     senderId: string;
-    body: string;
+    type?: 'text' | 'voice' | 'image' | 'system';
+    body?: string | null;
   }): Promise<MessageRow> {
     const [row] = await db
       .insert(messages)
@@ -26,8 +27,8 @@ export const messagingRepository = {
         contextType: input.contextType,
         ...contextColumns(input.contextType, input.contextId),
         senderId: input.senderId,
-        type: 'text',
-        body: input.body,
+        type: (input.type ?? 'text') as MessageRow['type'],
+        body: input.body ?? null,
       })
       .returning();
     if (!row) throw new Error('Failed to persist message');
@@ -57,6 +58,26 @@ export const messagingRepository = {
       .where(and(...conditions))
       .orderBy(desc(messages.createdAt))
       .limit(input.limit);
+  },
+
+  /** The context (type + id) for a message, looked up by its id (soft pointer). */
+  async findContextByMessageId(
+    messageId: string,
+  ): Promise<{ contextType: MessageContextType; contextId: string } | null> {
+    const rows = await db
+      .select({
+        contextType: messages.contextType,
+        sessionId: messages.sessionId,
+        friendshipId: messages.friendshipId,
+      })
+      .from(messages)
+      .where(eq(messages.id, messageId))
+      .limit(1);
+    const row = rows[0];
+    if (!row) return null;
+    const contextId = row.contextType === 'anon_session' ? row.sessionId : row.friendshipId;
+    if (!contextId) return null;
+    return { contextType: row.contextType, contextId };
   },
 
   /** Upserts a read high-water mark for a user in a conversation (§8.4, M-2). */

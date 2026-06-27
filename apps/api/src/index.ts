@@ -5,6 +5,7 @@ import { config } from './config/env.js';
 import { logger } from './config/logger.js';
 import { closeDatabase } from './db/client.js';
 import { matchingService } from './services/matchingService.js';
+import { mediaService } from './services/mediaService.js';
 
 /**
  * API entrypoint. Express and Socket.IO share one HTTP server / process
@@ -17,6 +18,9 @@ async function main(): Promise<void> {
 
   // Recover matching state before accepting connections (MATCHING_ENGINE.md §5.9).
   await matchingService.recover();
+
+  // Begin temporary-media expiry/cleanup sweeps (MEDIA_SYSTEM.md §5).
+  mediaService.startCleanup();
 
   httpServer.listen(config.PORT, () => {
     logger.info({ port: config.PORT, env: config.NODE_ENV }, 'Campusly API listening');

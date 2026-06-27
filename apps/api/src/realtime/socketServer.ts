@@ -5,6 +5,10 @@ import {
   CHAT_CLIENT_EVENTS,
   CHAT_SERVER_EVENTS,
   SendMessageSchema,
+  MEDIA_CLIENT_EVENTS,
+  MEDIA_SERVER_EVENTS,
+  VoiceUploadCompletedSchema,
+  MediaUploadedSchema,
 } from '@campusly/shared-types';
 import { config } from '../config/env.js';
 import { logger } from '../config/logger.js';
@@ -131,6 +135,32 @@ export function createSocketServer(httpServer: HttpServer): SocketIOServer {
     };
     socket.on(CHAT_CLIENT_EVENTS.TYPING_START, relayTyping(CHAT_SERVER_EVENTS.TYPING_START));
     socket.on(CHAT_CLIENT_EVENTS.TYPING_STOP, relayTyping(CHAT_SERVER_EVENTS.TYPING_STOP));
+
+    // --- Media messages (SOCKET_EVENTS.md §6–7): references only, never bytes ---
+    // A confirmed voice/image/video asset becomes a message; recipients get the
+    // canonical receive_message plus the typed voice/media notification.
+    const attachMedia = (serverEvent: string) => (raw: unknown) => {
+      const parsed =
+        serverEvent === MEDIA_SERVER_EVENTS.VOICE_MESSAGE_RECEIVED
+          ? VoiceUploadCompletedSchema.safeParse(raw)
+          : MediaUploadedSchema.safeParse(raw);
+      if (!parsed.success) return;
+      const { contextType, contextId, mediaId } = parsed.data;
+      void messagingService
+        .sendMediaMessage(userId, { contextType, contextId, mediaId })
+        .then(({ message, recipients }) => {
+          for (const uid of recipients) {
+            io.to(`user:${uid}`).emit(CHAT_SERVER_EVENTS.RECEIVE_MESSAGE, message);
+            io.to(`user:${uid}`).emit(serverEvent, { message });
+          }
+        })
+        .catch((err) => logger.error({ err, userId }, 'media message failed'));
+    };
+    socket.on(
+      MEDIA_CLIENT_EVENTS.VOICE_UPLOAD_COMPLETED,
+      attachMedia(MEDIA_SERVER_EVENTS.VOICE_MESSAGE_RECEIVED),
+    );
+    socket.on(MEDIA_CLIENT_EVENTS.MEDIA_UPLOADED, attachMedia(MEDIA_SERVER_EVENTS.MEDIA_RECEIVED));
 
     socket.on('disconnect', (reason) => {
       logger.info({ socketId: socket.id, userId, reason }, 'Socket disconnected');

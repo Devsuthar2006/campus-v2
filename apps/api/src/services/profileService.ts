@@ -7,10 +7,11 @@ import type {
   CompleteProfileInput,
   Interest,
 } from '@campusly/shared-types';
-import { NotFoundError, ForbiddenError, ConflictError } from '../domain/errors.js';
+import { NotFoundError, ForbiddenError, ConflictError, ValidationError } from '../domain/errors.js';
 import type { PrivacySettingsRow, UserRow, ProfileRow } from '../db/schema.js';
 import { userRepository } from '../repositories/userRepository.js';
 import { profileRepository } from '../repositories/profileRepository.js';
+import { mediaRepository } from '../repositories/mediaRepository.js';
 
 function toPrivacy(row: PrivacySettingsRow): PrivacySettings {
   return {
@@ -41,14 +42,34 @@ export const profileService = {
     return buildMyProfile(user, profile, privacy, toInterests(interests));
   },
 
-  /** Update editable fields (name → users; bio/gender → profiles). */
+  /** Update editable fields (name → users; bio/gender/avatar → profiles). */
   async updateProfile(userId: string, input: UpdateProfileInput): Promise<MyProfile> {
+    await profileRepository.ensureRows(userId);
     if (input.name !== undefined) {
       await userRepository.updateCoreFields(userId, { name: input.name });
     }
-    const profileFields: { bio?: string | null; gender?: ProfileRow['gender'] } = {};
+    const profileFields: {
+      bio?: string | null;
+      gender?: ProfileRow['gender'];
+      avatarMediaId?: string | null;
+    } = {};
     if (input.bio !== undefined) profileFields.bio = input.bio;
     if (input.gender !== undefined) profileFields.gender = input.gender;
+    if (input.avatarMediaId !== undefined) {
+      if (input.avatarMediaId !== null) {
+        // Must be an active avatar asset the user owns (MEDIA_SYSTEM.md §4).
+        const media = await mediaRepository.findById(input.avatarMediaId);
+        if (
+          !media ||
+          media.status !== 'active' ||
+          media.kind !== 'avatar' ||
+          media.ownerId !== userId
+        ) {
+          throw new ValidationError('Invalid avatar reference.');
+        }
+      }
+      profileFields.avatarMediaId = input.avatarMediaId;
+    }
     await profileRepository.updateProfileFields(userId, profileFields);
     return this.getMyProfile(userId);
   },

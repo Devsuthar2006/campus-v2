@@ -45,7 +45,7 @@ export const profileRepository = {
 
   async updateProfileFields(
     userId: string,
-    fields: { bio?: string | null; gender?: ProfileRow['gender'] },
+    fields: { bio?: string | null; gender?: ProfileRow['gender']; avatarMediaId?: string | null },
   ): Promise<void> {
     if (Object.keys(fields).length === 0) return;
     await db

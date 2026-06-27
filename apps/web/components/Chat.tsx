@@ -1,16 +1,20 @@
 'use client';
 
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent, type ChangeEvent } from 'react';
 import type { MessageContextType } from '@campusly/shared-types';
+import { ImagePlus, Mic, Square } from 'lucide-react';
 import { useConversation } from '../hooks/useConversation';
+import { mediaApi } from '../lib/media';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
+import { MediaAttachment } from './MediaAttachment';
 import { cn } from '../lib/utils';
 
 /**
  * Reusable conversation UI (UI_GUIDELINES.md §12): message list + composer.
- * Drives both anonymous sessions and (Phase 05) friend chats. Sender messages
- * align right; the partner's align left.
+ * Drives anonymous sessions and friend chats. Supports text plus media (images
+ * and voice messages) — bytes upload directly to storage, only references flow
+ * over the socket (MEDIA_SYSTEM.md §3, §6).
  */
 export function Chat({
   contextType,
@@ -21,8 +25,15 @@ export function Chat({
   contextId: string;
   selfId: string;
 }) {
-  const { messages, partnerTyping, send, notifyTyping } = useConversation(contextType, contextId);
+  const { messages, partnerTyping, expiredMessageIds, send, sendMedia, notifyTyping } =
+    useConversation(contextType, contextId);
   const [draft, setDraft] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const startedAtRef = useRef<number>(0);
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -33,6 +44,55 @@ export function Chat({
     e.preventDefault();
     send(draft);
     setDraft('');
+  };
+
+  const onPickImage = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setBusy(true);
+    try {
+      const media = await mediaApi.upload(file, 'image');
+      sendMedia(media.id, 'image');
+    } catch {
+      // surfaced via disabled state reset; intentionally quiet for MVP
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      chunksRef.current = [];
+      recorder.ondataavailable = (ev) => {
+        if (ev.data.size > 0) chunksRef.current.push(ev.data);
+      };
+      recorder.onstop = () => {
+        stream.getTracks().forEach((t) => t.stop());
+        const durationMs = Date.now() - startedAtRef.current;
+        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        setBusy(true);
+        mediaApi
+          .upload(blob, 'voice', durationMs)
+          .then((media) => sendMedia(media.id, 'voice', durationMs))
+          .catch(() => {})
+          .finally(() => setBusy(false));
+      };
+      recorderRef.current = recorder;
+      startedAtRef.current = Date.now();
+      recorder.start();
+      setRecording(true);
+    } catch {
+      // microphone unavailable / denied — ignore for MVP
+    }
+  };
+
+  const stopRecording = () => {
+    recorderRef.current?.stop();
+    recorderRef.current = null;
+    setRecording(false);
   };
 
   return (
@@ -58,7 +118,14 @@ export function Chat({
                         : 'bg-surface text-foreground border border-border',
                     )}
                   >
-                    {m.body}
+                    {m.attachment ? (
+                      <MediaAttachment
+                        attachment={m.attachment}
+                        expired={expiredMessageIds.has(m.id)}
+                      />
+                    ) : (
+                      m.body
+                    )}
                   </span>
                 </li>
               );
@@ -69,18 +136,49 @@ export function Chat({
         <div ref={endRef} />
       </div>
 
-      <form className="flex gap-space-2 border-t border-border pt-space-3" onSubmit={onSubmit}>
+      <form
+        className="flex items-center gap-space-2 border-t border-border pt-space-3"
+        onSubmit={onSubmit}
+      >
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className="hidden"
+          onChange={(e) => void onPickImage(e)}
+        />
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          aria-label="Attach image"
+          disabled={busy || recording}
+          onClick={() => fileRef.current?.click()}
+        >
+          <ImagePlus className="h-5 w-5" />
+        </Button>
+        <Button
+          type="button"
+          variant={recording ? 'danger' : 'ghost'}
+          size="sm"
+          aria-label={recording ? 'Stop recording' : 'Record voice message'}
+          disabled={busy && !recording}
+          onClick={() => (recording ? stopRecording() : void startRecording())}
+        >
+          {recording ? <Square className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+        </Button>
         <Input
           value={draft}
           onChange={(e) => {
             setDraft(e.target.value);
             notifyTyping();
           }}
-          placeholder="Type a message…"
+          placeholder={recording ? 'Recording…' : 'Type a message…'}
           aria-label="Message"
           maxLength={4000}
+          disabled={recording}
         />
-        <Button type="submit" disabled={!draft.trim()}>
+        <Button type="submit" disabled={!draft.trim() || busy}>
           Send
         </Button>
       </form>

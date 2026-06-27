@@ -18,6 +18,7 @@ import {
   uuid,
   text,
   smallint,
+  bigint,
   boolean,
   integer,
   jsonb,
@@ -261,7 +262,9 @@ export const profiles = pgTable(
     userId: uuid('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    avatarMediaId: uuid('avatar_media_id'), // FK to media_assets added in Phase 06
+    avatarMediaId: uuid('avatar_media_id').references(() => mediaAssets.id, {
+      onDelete: 'set null',
+    }),
     gender: genderEnum('gender'),
     bio: text('bio'),
     moderationStatus: moderationStatusEnum('moderation_status').notNull().default('clear'),
@@ -614,3 +617,67 @@ export const blockedUsers = pgTable(
 export type FriendRequestRow = typeof friendRequests.$inferSelect;
 export type FriendshipRow = typeof friendships.$inferSelect;
 export type BlockedUserRow = typeof blockedUsers.$inferSelect;
+
+// ---------------------------------------------------------------------------
+// Media module (DATABASE_SCHEMA.md §8.6, §20) — Phase 06
+// The central registry linking PostgreSQL to object storage for ALL media.
+// Inviolable rule: bytes live in object storage; only references live here.
+// ---------------------------------------------------------------------------
+
+export const mediaKindEnum = pgEnum('media_kind', [
+  'image',
+  'voice',
+  'video',
+  'avatar',
+  'document',
+]);
+
+export const mediaStatusEnum = pgEnum('media_status', ['pending', 'active', 'expired', 'deleted']);
+
+/** media_assets (§8.6) — one registry, many referrers (profiles, messages, ...). */
+export const mediaAssets = pgTable(
+  'media_assets',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    ownerId: uuid('owner_id').references(() => users.id, { onDelete: 'set null' }),
+    /** Object-storage key/path — never a public URL (MEDIA_SYSTEM.md §9). */
+    storageKey: text('storage_key').notNull(),
+    kind: mediaKindEnum('kind').notNull(),
+    mimeType: text('mime_type').notNull(),
+    sizeBytes: bigint('size_bytes', { mode: 'number' }),
+    durationMs: integer('duration_ms'),
+    metadata: jsonb('metadata'),
+    isTemporary: boolean('is_temporary').notNull().default(false),
+    expiresAt: timestamp('expires_at', { withTimezone: true }),
+    status: mediaStatusEnum('status').notNull().default('pending'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    ownerIdx: index('idx_media_assets_owner').on(t.ownerId),
+    statusIdx: index('idx_media_assets_status').on(t.status),
+    // Cleanup job scans active temporary media past its deadline.
+    expiryIdx: index('idx_media_assets_expiry')
+      .on(t.expiresAt)
+      .where(sql`is_temporary and status = 'active'`),
+  }),
+);
+
+/** message_attachments (§8.2) — links a message to one or more media assets. */
+export const messageAttachments = pgTable(
+  'message_attachments',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    messageId: uuid('message_id').notNull(), // soft pointer (messages PK is composite)
+    mediaId: uuid('media_id')
+      .notNull()
+      .references(() => mediaAssets.id, { onDelete: 'restrict' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    messageIdx: index('idx_message_attachments_message').on(t.messageId),
+    mediaIdx: index('idx_message_attachments_media').on(t.mediaId),
+  }),
+);
+
+export type MediaAssetRow = typeof mediaAssets.$inferSelect;
+export type MessageAttachmentRow = typeof messageAttachments.$inferSelect;

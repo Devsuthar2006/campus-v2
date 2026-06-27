@@ -68,6 +68,8 @@ export const UpdateProfileSchema = z.object({
   name: z.string().trim().min(1).max(80).optional(),
   bio: z.string().trim().max(280).optional(),
   gender: z.enum(GENDERS).optional(),
+  /** Avatar media reference (Phase 06); null clears it. Must be an owned avatar asset. */
+  avatarMediaId: z.string().uuid().nullable().optional(),
 });
 export type UpdateProfileInput = z.infer<typeof UpdateProfileSchema>;
 

@@ -12,6 +12,8 @@ import { userRouter } from './http/user.routes.js';
 import { matchingRouter } from './http/matching.routes.js';
 import { messagingRouter } from './http/messaging.routes.js';
 import { friendRouter } from './http/friend.routes.js';
+import { mediaRouter } from './http/media.routes.js';
+import { localMediaRouter } from './http/localMedia.routes.js';
 
 /** API version prefix (API_SPEC.md §2.1). */
 export const API_PREFIX = '/api/v1';
@@ -30,6 +32,11 @@ export function createApp(): Express {
 
   app.use(helmet());
   app.use(cors({ origin: config.CORS_ORIGINS, credentials: true }));
+
+  // Local object-storage stand-in handles raw binary uploads/downloads and MUST
+  // be mounted before the JSON body parser (dev only — MEDIA_DRIVER=local).
+  app.use(localMediaRouter);
+
   app.use(express.json({ limit: '1mb' }));
   app.use(pinoHttp({ logger }));
   app.use(globalRateLimiter);
@@ -40,6 +47,7 @@ export function createApp(): Express {
   app.use(API_PREFIX, matchingRouter);
   app.use(API_PREFIX, messagingRouter);
   app.use(API_PREFIX, friendRouter);
+  app.use(API_PREFIX, mediaRouter);
 
   // Feature routers (wall, communities, ...) mount under API_PREFIX in later phases.
 
