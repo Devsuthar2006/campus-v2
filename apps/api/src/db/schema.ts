@@ -962,3 +962,133 @@ export const reports = pgTable(
 );
 
 export type ReportRow = typeof reports.$inferSelect;
+
+// ---------------------------------------------------------------------------
+// Communities & Clubs module (DATABASE_SCHEMA.md §11) — Phase 09
+// A club is a specialized community. Community posts mirror wall_posts but are
+// scoped by community_id; reactions reuse the polymorphic reactions table.
+// ---------------------------------------------------------------------------
+
+export const communityTypeEnum = pgEnum('community_type', ['community', 'club']);
+export const communityVisibilityEnum = pgEnum('community_visibility', [
+  'public',
+  'request',
+  'invite',
+]);
+export const communityRoleEnum = pgEnum('community_role', ['owner', 'moderator', 'member']);
+export const communityMemberStatusEnum = pgEnum('community_member_status', [
+  'active',
+  'pending',
+  'banned',
+]);
+export const communityInviteStatusEnum = pgEnum('community_invite_status', [
+  'pending',
+  'accepted',
+  'declined',
+  'expired',
+]);
+export const communityPostTypeEnum = pgEnum('community_post_type', ['text', 'announcement']);
+
+/** communities (§11.1) — a group/club, optionally campus-scoped. */
+export const communities = pgTable(
+  'communities',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    universityId: uuid('university_id').references(() => universities.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    slug: text('slug').notNull(),
+    description: text('description'),
+    type: communityTypeEnum('type').notNull().default('community'),
+    visibility: communityVisibilityEnum('visibility').notNull().default('public'),
+    isVerified: boolean('is_verified').notNull().default(false),
+    iconMediaId: uuid('icon_media_id').references(() => mediaAssets.id, { onDelete: 'set null' }),
+    memberCount: integer('member_count').notNull().default(0),
+    createdBy: uuid('created_by')
+      .notNull()
+      .references(() => users.id),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+  },
+  (t) => ({
+    slugUnique: unique('uq_communities_slug').on(t.universityId, t.slug),
+    universityIdx: index('idx_communities_university').on(t.universityId),
+    typeIdx: index('idx_communities_type').on(t.type),
+  }),
+);
+
+/** community_members (§11.2) — membership join with community RBAC. */
+export const communityMembers = pgTable(
+  'community_members',
+  {
+    communityId: uuid('community_id')
+      .notNull()
+      .references(() => communities.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    role: communityRoleEnum('role').notNull().default('member'),
+    status: communityMemberStatusEnum('status').notNull().default('active'),
+    joinedAt: timestamp('joined_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.communityId, t.userId] }),
+    userIdx: index('idx_community_members_user').on(t.userId),
+  }),
+);
+
+/** community_posts (§11.3) — posts within a community (mirrors wall_posts). */
+export const communityPosts = pgTable(
+  'community_posts',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    communityId: uuid('community_id')
+      .notNull()
+      .references(() => communities.id, { onDelete: 'cascade' }),
+    authorId: uuid('author_id')
+      .notNull()
+      .references(() => users.id),
+    isAnonymous: boolean('is_anonymous').notNull().default(false),
+    postType: communityPostTypeEnum('post_type').notNull().default('text'),
+    body: text('body'),
+    reactionCount: integer('reaction_count').notNull().default(0),
+    status: contentStatusEnum('status').notNull().default('visible'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+  },
+  (t) => ({
+    feedIdx: index('idx_community_posts_feed')
+      .on(t.communityId, t.createdAt)
+      .where(sql`status = 'visible' and deleted_at is null`),
+  }),
+);
+
+/** community_invites (§11.4) — pending invitations for request/invite communities. */
+export const communityInvites = pgTable(
+  'community_invites',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    communityId: uuid('community_id')
+      .notNull()
+      .references(() => communities.id, { onDelete: 'cascade' }),
+    inviterId: uuid('inviter_id')
+      .notNull()
+      .references(() => users.id),
+    inviteeId: uuid('invitee_id')
+      .notNull()
+      .references(() => users.id),
+    status: communityInviteStatusEnum('status').notNull().default('pending'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    pendingUnique: uniqueIndex('uq_community_invites_pending')
+      .on(t.communityId, t.inviteeId)
+      .where(sql`status = 'pending'`),
+    inviteeIdx: index('idx_community_invites_invitee').on(t.inviteeId, t.status),
+  }),
+);
+
+export type CommunityRow = typeof communities.$inferSelect;
+export type CommunityMemberRow = typeof communityMembers.$inferSelect;
+export type CommunityPostRow = typeof communityPosts.$inferSelect;
+export type CommunityInviteRow = typeof communityInvites.$inferSelect;

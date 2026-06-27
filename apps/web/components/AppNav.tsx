@@ -33,6 +33,9 @@ export function AppNav() {
         <Link href="/friends" className="text-body text-muted-foreground hover:text-foreground">
           Friends
         </Link>
+        <Link href="/communities" className="text-body text-muted-foreground hover:text-foreground">
+          Communities
+        </Link>
         <Link href="/profile" className="text-body text-muted-foreground hover:text-foreground">
           Profile
         </Link>

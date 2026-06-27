@@ -15,6 +15,7 @@ import { friendRouter } from './http/friend.routes.js';
 import { mediaRouter } from './http/media.routes.js';
 import { localMediaRouter } from './http/localMedia.routes.js';
 import { wallRouter } from './http/wall.routes.js';
+import { communityRouter } from './http/community.routes.js';
 
 /** API version prefix (API_SPEC.md §2.1). */
 export const API_PREFIX = '/api/v1';
@@ -50,6 +51,7 @@ export function createApp(): Express {
   app.use(API_PREFIX, friendRouter);
   app.use(API_PREFIX, mediaRouter);
   app.use(API_PREFIX, wallRouter);
+  app.use(API_PREFIX, communityRouter);
 
   // Feature routers (wall, communities, ...) mount under API_PREFIX in later phases.
 
