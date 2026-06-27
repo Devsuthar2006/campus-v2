@@ -31,6 +31,15 @@ const EnvSchema = z.object({
   REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(30),
   /** Grace window (days) for account-deletion recovery before PII purge (AUTH_SYSTEM.md §8). */
   ACCOUNT_DELETION_GRACE_DAYS: z.coerce.number().int().positive().default(14),
+  /**
+   * DEV-ONLY: when true, sign-ins from unrecognized email domains are accepted
+   * and attached to a fallback "Open Campus (Dev)" university instead of being
+   * rejected. MUST be false in production (defeats verified-students-only).
+   */
+  AUTH_ALLOW_ANY_DOMAIN: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((v) => v === 'true'),
 });
 
 function loadConfig() {

@@ -70,7 +70,11 @@ export const authService = {
 
     if (!user) {
       // New user — enforce institutional-domain eligibility (AUTH_SYSTEM.md §3).
-      const university = await universityRepository.findByEmailDomain(emailDomain(profile.email));
+      let university = await universityRepository.findByEmailDomain(emailDomain(profile.email));
+      if (!university && config.AUTH_ALLOW_ANY_DOMAIN) {
+        // DEV-ONLY open sign-in: attach to the fallback campus.
+        university = await universityRepository.getOrCreateOpenCampus();
+      }
       if (!university) {
         await loginHistoryRepository.record({
           event: 'login_failure',
