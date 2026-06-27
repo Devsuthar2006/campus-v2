@@ -1,7 +1,14 @@
-import { eq } from 'drizzle-orm';
+import { and, eq, ilike, isNull } from 'drizzle-orm';
 import type { AccountStatus } from '@campusly/shared-types';
 import { db } from '../db/client.js';
-import { users, googleAccounts, type UserRow, type NewUserRow } from '../db/schema.js';
+import {
+  users,
+  googleAccounts,
+  profiles,
+  privacySettings,
+  type UserRow,
+  type NewUserRow,
+} from '../db/schema.js';
 
 /**
  * Data access for users and their linked Google accounts
@@ -48,6 +55,10 @@ export const userRepository = {
         email: input.google.email.toLowerCase(),
         pictureUrl: input.google.pictureUrl ?? null,
       });
+      // Every user has exactly one profile + privacy_settings row, created with
+      // privacy-friendly defaults (DATABASE_SCHEMA.md §6.1, §6.3).
+      await tx.insert(profiles).values({ userId: created.id });
+      await tx.insert(privacySettings).values({ userId: created.id });
       return created;
     });
   },
@@ -57,6 +68,35 @@ export const userRepository = {
       .update(users)
       .set({ accountStatus: status, updatedAt: new Date() })
       .where(eq(users.id, id));
+  },
+
+  /** Updates editable/verified core user fields (name, year, branch). */
+  async updateCoreFields(
+    id: string,
+    fields: { name?: string; year?: number | null; branchId?: string | null },
+  ): Promise<void> {
+    if (Object.keys(fields).length === 0) return;
+    await db
+      .update(users)
+      .set({ ...fields, updatedAt: new Date() })
+      .where(eq(users.id, id));
+  },
+
+  /** Campus-scoped name search of active students (GET /users/search). */
+  async searchByName(universityId: string, query: string, limit = 20): Promise<UserRow[]> {
+    const term = `%${query.trim().toLowerCase()}%`;
+    return db
+      .select()
+      .from(users)
+      .where(
+        and(
+          eq(users.universityId, universityId),
+          eq(users.accountStatus, 'active'),
+          isNull(users.deletedAt),
+          ilike(users.name, term),
+        ),
+      )
+      .limit(limit);
   },
 
   /** Soft-deletes the account (deactivation); PII purge runs after the grace window. */

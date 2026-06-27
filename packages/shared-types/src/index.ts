@@ -7,3 +7,4 @@ export * from './errors';
 export * from './api';
 export * from './pagination';
 export * from './auth';
+export * from './profile';

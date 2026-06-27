@@ -1,59 +1,46 @@
 'use client';
 
-import { useHealth } from '../hooks/useHealth';
-import { Button } from '../components/ui/Button';
+import Link from 'next/link';
+import { useRequireAuth } from '../hooks/useRequireAuth';
+import { AppNav } from '../components/AppNav';
 import { Card, CardTitle, CardDescription } from '../components/ui/Card';
-import { ThemeToggle } from '../components/ThemeToggle';
 
 /**
- * Phase 00 app shell + connectivity smoke test. No product features — this page
- * proves the frontend boots, the theme system works, the design tokens render,
- * and the API client reaches the backend health endpoint.
+ * Authenticated home. The guard routes unauthenticated users to /signin and
+ * incomplete profiles to /onboarding. Feature surfaces (wall, matching, chat)
+ * are added in later phases — this is the verified-student landing for now.
  */
 export default function HomePage() {
-  const health = useHealth();
+  const { user, isLoading } = useRequireAuth();
 
-  const dbStatus = health.data?.database;
-  const statusLabel = health.isLoading
-    ? 'Checking…'
-    : health.isError
-      ? 'Unreachable'
-      : `API ${health.data?.status} · DB ${dbStatus}`;
+  if (isLoading || !user) return null;
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-space-8 px-space-4 py-space-12 md:px-space-8">
-      <header className="flex items-center justify-between">
-        <span className="text-h2 font-semibold text-brand">Campusly</span>
-        <ThemeToggle />
-      </header>
+    <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-space-8 px-space-4 py-space-8 md:px-space-8">
+      <AppNav />
 
-      <div className="flex flex-col gap-space-3">
-        <h1 className="text-h1 text-foreground">Foundation ready.</h1>
+      <div className="flex flex-col gap-space-2">
+        <h1 className="text-h1 text-foreground">Welcome, {user.name.split(' ')[0]}.</h1>
         <p className="text-body text-muted-foreground">
-          Phase 00 skeleton — Next.js, Tailwind design tokens, theme system, React Query, and the
-          API client are wired. Product features begin in Phase 01.
+          You&apos;re a verified student of your campus. Your social surfaces — the wall, anonymous
+          matching, friends — arrive in upcoming phases.
         </p>
       </div>
 
-      <Card className="flex flex-col gap-space-4">
-        <div className="flex flex-col gap-space-1">
-          <CardTitle>Backend connectivity</CardTitle>
-          <CardDescription>Live status from GET /api/v1/health</CardDescription>
-        </div>
-        <div className="flex items-center gap-space-3">
-          <span
-            className={`inline-block h-2.5 w-2.5 rounded-full ${
-              health.isError ? 'bg-danger' : dbStatus === 'connected' ? 'bg-success' : 'bg-warning'
-            }`}
-          />
-          <span className="text-body text-foreground">{statusLabel}</span>
-        </div>
-        <div className="flex gap-space-3">
-          <Button onClick={() => void health.refetch()}>Re-check</Button>
-          <Button variant="secondary">Secondary</Button>
-          <Button variant="ghost">Ghost</Button>
-        </div>
-      </Card>
+      <div className="grid grid-cols-1 gap-space-4 sm:grid-cols-2">
+        <Link href="/profile">
+          <Card className="h-full transition-colors hover:bg-muted">
+            <CardTitle>Your profile</CardTitle>
+            <CardDescription>View and edit your identity and interests.</CardDescription>
+          </Card>
+        </Link>
+        <Link href="/settings">
+          <Card className="h-full transition-colors hover:bg-muted">
+            <CardTitle>Privacy &amp; settings</CardTitle>
+            <CardDescription>Control what your campus can see.</CardDescription>
+          </Card>
+        </Link>
+      </div>
     </main>
   );
 }

@@ -22,6 +22,7 @@ import {
   timestamp,
   unique,
   index,
+  primaryKey,
 } from 'drizzle-orm/pg-core';
 
 // ---------------------------------------------------------------------------
@@ -56,6 +57,20 @@ export const loginEventEnum = pgEnum('login_event', [
 ]);
 
 export const devicePlatformEnum = pgEnum('device_platform', ['web', 'ios', 'android']);
+
+// --- Profile module enums (DATABASE_SCHEMA.md §6) ---
+
+export const genderEnum = pgEnum('gender', ['male', 'female', 'other', 'prefer_not']);
+
+export const moderationStatusEnum = pgEnum('moderation_status', ['clear', 'flagged', 'restricted']);
+
+export const profileVisibilityEnum = pgEnum('profile_visibility', ['campus', 'friends', 'private']);
+
+export const friendRequestPolicyEnum = pgEnum('friend_request_policy', [
+  'everyone',
+  'campus',
+  'none',
+]);
 
 // ---------------------------------------------------------------------------
 // universities (DATABASE_SCHEMA.md §5.1) — root of campus scoping
@@ -224,3 +239,92 @@ export type UserRow = typeof users.$inferSelect;
 export type NewUserRow = typeof users.$inferInsert;
 export type UniversityRow = typeof universities.$inferSelect;
 export type RefreshTokenRow = typeof refreshTokens.$inferSelect;
+
+// ---------------------------------------------------------------------------
+// Profile module (DATABASE_SCHEMA.md §6) — Phase 02
+// ---------------------------------------------------------------------------
+
+/**
+ * profiles (DATABASE_SCHEMA.md §6.1) — 1:1 extension of users with displayable,
+ * editable identity. `avatar_media_id` references media_assets, which is created
+ * in Phase 06 (Media); it is a nullable column without an FK until then.
+ */
+export const profiles = pgTable(
+  'profiles',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    avatarMediaId: uuid('avatar_media_id'), // FK to media_assets added in Phase 06
+    gender: genderEnum('gender'),
+    bio: text('bio'),
+    moderationStatus: moderationStatusEnum('moderation_status').notNull().default('clear'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    userUnique: unique('uq_profiles_user').on(t.userId),
+  }),
+);
+
+/** interests (DATABASE_SCHEMA.md §6.2) — normalized interest vocabulary. */
+export const interests = pgTable(
+  'interests',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    name: text('name').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    nameUnique: unique('uq_interests_name').on(t.name),
+  }),
+);
+
+/** user_interests (DATABASE_SCHEMA.md §6.2) — many-to-many join. */
+export const userInterests = pgTable(
+  'user_interests',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    interestId: uuid('interest_id')
+      .notNull()
+      .references(() => interests.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.userId, t.interestId] }),
+    interestIdx: index('idx_user_interests_interest').on(t.interestId),
+  }),
+);
+
+/**
+ * privacy_settings (DATABASE_SCHEMA.md §6.3) — per-user privacy controls
+ * (Privacy by Design). One row per user, privacy-friendly defaults.
+ */
+export const privacySettings = pgTable(
+  'privacy_settings',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    showLastSeen: boolean('show_last_seen').notNull().default(true),
+    showOnlineStatus: boolean('show_online_status').notNull().default(true),
+    sendReadReceipts: boolean('send_read_receipts').notNull().default(true),
+    profileVisibility: profileVisibilityEnum('profile_visibility').notNull().default('campus'),
+    allowFriendRequests: friendRequestPolicyEnum('allow_friend_requests')
+      .notNull()
+      .default('everyone'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    userUnique: unique('uq_privacy_settings_user').on(t.userId),
+  }),
+);
+
+export type ProfileRow = typeof profiles.$inferSelect;
+export type PrivacySettingsRow = typeof privacySettings.$inferSelect;
+export type InterestRow = typeof interests.$inferSelect;
