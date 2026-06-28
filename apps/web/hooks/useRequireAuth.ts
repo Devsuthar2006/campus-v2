@@ -18,7 +18,7 @@ export function useRequireAuth(options: { allowIncomplete?: boolean } = {}) {
   useEffect(() => {
     if (isLoading) return;
     if (!user) {
-      router.replace('/signin');
+      router.replace('/?view=signin');
       return;
     }
     if (!user.profileComplete && !options.allowIncomplete) {

@@ -43,17 +43,28 @@ async function rawFetch<T>(path: string, init: FetchOptions, token: string | nul
 /** Attempts a one-time refresh-token rotation. Returns true on success. */
 async function tryRefresh(): Promise<boolean> {
   const refreshToken = authStorage.getRefreshToken();
-  if (!refreshToken) return false;
+  if (!refreshToken) {
+    console.debug('[auth] tryRefresh: no refresh token in storage');
+    return false;
+  }
   try {
+    console.debug('[auth] tryRefresh: attempting token refresh...');
     const data = await rawFetch<AuthResponse>(
       '/auth/refresh',
       { method: 'POST', body: JSON.stringify({ refreshToken }) },
       null,
     );
     authStorage.setTokens(data.tokens);
+    console.debug('[auth] tryRefresh: success, new access token stored');
     return true;
-  } catch {
-    authStorage.clear();
+  } catch (err) {
+    console.debug('[auth] tryRefresh: failed', err);
+    // Only clear tokens if the server explicitly rejected the refresh token.
+    // Network errors / transient failures should NOT wipe stored credentials.
+    if (err instanceof ApiClientError) {
+      console.debug('[auth] tryRefresh: API rejected token, clearing storage');
+      authStorage.clear();
+    }
     return false;
   }
 }
@@ -67,11 +78,21 @@ export async function apiFetch<T>(path: string, init: FetchOptions = {}): Promis
 
   // Proactively refresh an expired access token before the request.
   if (authStorage.isAccessTokenExpired() && authStorage.getRefreshToken()) {
-    await tryRefresh();
+    const refreshed = await tryRefresh();
+    // If refresh failed and we still have no usable token, bail immediately.
+    if (!refreshed && !authStorage.getAccessToken()) {
+      throw new ApiClientError('authentication_failed', 'Session could not be restored.');
+    }
+  }
+
+  // Final guard: don't send a request without any token.
+  const token = authStorage.getAccessToken();
+  if (!token) {
+    throw new ApiClientError('authentication_failed', 'No access token available.');
   }
 
   try {
-    return await rawFetch<T>(path, rest, authStorage.getAccessToken());
+    return await rawFetch<T>(path, rest, token);
   } catch (err) {
     // Reactive refresh on a 401, then retry once.
     if (

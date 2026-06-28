@@ -89,116 +89,124 @@ export default function ProfilePage() {
   };
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-space-6 px-space-4 py-space-8 md:px-space-8">
-      <AppNav />
-      <div className="flex flex-col gap-space-1">
-        <h1 className="text-h1 text-foreground">Your profile</h1>
-        <p className="text-body text-muted-foreground">
-          Verified details come from your campus; the rest is yours to edit.
-        </p>
+    <div className="flex h-[100dvh] flex-col overflow-hidden">
+      <div className="shrink-0">
+        <AppNav />
       </div>
-
-      {profileQuery.isLoading && <p className="text-caption text-muted-foreground">Loading…</p>}
-
-      {profileQuery.data && (
-        <Card className="flex flex-col gap-space-5">
+      <div className="flex-1 overflow-y-auto px-space-4 md:px-space-8 pb-24 md:pb-8">
+        <div className="mx-auto max-w-2xl flex flex-col gap-space-6 py-space-5">
           <div className="flex flex-col gap-space-1">
-            <CardTitle>Identity</CardTitle>
-            <CardDescription>
-              {profileQuery.data.email} · year {profileQuery.data.year ?? '—'} · verified student
-            </CardDescription>
+            <h1 className="text-h1 text-foreground">Your profile</h1>
+            <p className="text-body text-muted-foreground">
+              Verified details come from your campus; the rest is yours to edit.
+            </p>
           </div>
 
-          <div className="flex items-center gap-space-4">
-            <div className="h-20 w-20 overflow-hidden rounded-full border border-border bg-surface">
-              {profileQuery.data.avatarMediaId ? (
-                <MediaAttachment
-                  attachment={{
-                    mediaId: profileQuery.data.avatarMediaId,
-                    kind: 'avatar',
-                    mimeType: 'image/*',
-                    durationMs: null,
-                    expiresAt: null,
-                  }}
-                />
-              ) : (
-                <span className="flex h-full w-full items-center justify-center text-h3 text-muted-foreground">
-                  {profileQuery.data.name.charAt(0).toUpperCase()}
-                </span>
-              )}
-            </div>
-            <div className="flex flex-col gap-space-1">
-              <span className="text-small font-medium text-foreground">Profile photo</span>
-              <label className="cursor-pointer">
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  className="hidden"
-                  onChange={(e) => void onAvatar(e)}
-                  disabled={avatarBusy}
-                />
-                <span className="inline-flex h-9 items-center rounded-button border border-border px-space-3 text-small text-foreground hover:bg-surface">
-                  {avatarBusy ? 'Uploading…' : 'Change photo'}
-                </span>
-              </label>
-            </div>
-          </div>
+          {profileQuery.isLoading && <p className="text-caption text-muted-foreground">Loading…</p>}
 
-          <form
-            className="flex flex-col gap-space-4"
-            onSubmit={(e) => {
-              e.preventDefault();
-              save.mutate();
-            }}
-          >
-            <label className="flex flex-col gap-space-1">
-              <span className="text-small font-medium text-foreground">Display name</span>
-              <Input value={name} onChange={(e) => setName(e.target.value)} maxLength={80} />
-            </label>
+          {profileQuery.data && (
+            <Card className="flex flex-col gap-space-5">
+              <div className="flex flex-col gap-space-1">
+                <CardTitle>Identity</CardTitle>
+                <CardDescription>
+                  {profileQuery.data.email} · year {profileQuery.data.year ?? '—'} · verified
+                  student
+                </CardDescription>
+              </div>
 
-            <label className="flex flex-col gap-space-1">
-              <span className="text-small font-medium text-foreground">Bio</span>
-              <Textarea value={bio} onChange={(e) => setBio(e.target.value)} maxLength={280} />
-            </label>
+              <div className="flex items-center gap-space-4">
+                <div className="h-20 w-20 overflow-hidden rounded-full border border-border bg-surface">
+                  {profileQuery.data.avatarMediaId ? (
+                    <MediaAttachment
+                      attachment={{
+                        mediaId: profileQuery.data.avatarMediaId,
+                        kind: 'avatar',
+                        mimeType: 'image/*',
+                        durationMs: null,
+                        expiresAt: null,
+                      }}
+                      imgClassName="h-full w-full object-cover object-center rounded-none"
+                    />
+                  ) : (
+                    <span className="flex h-full w-full items-center justify-center text-h3 text-muted-foreground">
+                      {profileQuery.data.name.charAt(0).toUpperCase()}
+                    </span>
+                  )}
+                </div>
+                <div className="flex flex-col gap-space-1">
+                  <span className="text-small font-medium text-foreground">Profile photo</span>
+                  <label className="cursor-pointer">
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      className="hidden"
+                      onChange={(e) => void onAvatar(e)}
+                      disabled={avatarBusy}
+                    />
+                    <span className="inline-flex h-9 items-center rounded-button border border-border px-space-3 text-small text-foreground hover:bg-surface">
+                      {avatarBusy ? 'Uploading…' : 'Change photo'}
+                    </span>
+                  </label>
+                </div>
+              </div>
 
-            <label className="flex flex-col gap-space-1">
-              <span className="text-small font-medium text-foreground">Gender</span>
-              <select
-                value={gender}
-                onChange={(e) => setGender(e.target.value as Gender | '')}
-                className="h-11 rounded-input border border-border bg-background px-space-3 text-body text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+              <form
+                className="flex flex-col gap-space-4"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  save.mutate();
+                }}
               >
-                <option value="">Prefer not to say</option>
-                {GENDERS.filter((g) => g !== 'prefer_not').map((g) => (
-                  <option key={g} value={g}>
-                    {g.charAt(0).toUpperCase() + g.slice(1)}
-                  </option>
-                ))}
-              </select>
-            </label>
+                <label className="flex flex-col gap-space-1">
+                  <span className="text-small font-medium text-foreground">Display name</span>
+                  <Input value={name} onChange={(e) => setName(e.target.value)} maxLength={80} />
+                </label>
 
-            <label className="flex flex-col gap-space-1">
-              <span className="text-small font-medium text-foreground">Interests</span>
-              <Input
-                value={interests}
-                onChange={(e) => setInterests(e.target.value)}
-                placeholder="comma,separated,interests"
-              />
-            </label>
+                <label className="flex flex-col gap-space-1">
+                  <span className="text-small font-medium text-foreground">Bio</span>
+                  <Textarea value={bio} onChange={(e) => setBio(e.target.value)} maxLength={280} />
+                </label>
 
-            {message && <p className="text-caption text-success">{message}</p>}
-            {error && (
-              <p className="text-caption text-danger" role="alert">
-                {error}
-              </p>
-            )}
+                <label className="flex flex-col gap-space-1">
+                  <span className="text-small font-medium text-foreground">Gender</span>
+                  <select
+                    value={gender}
+                    onChange={(e) => setGender(e.target.value as Gender | '')}
+                    className="h-11 rounded-input border border-border bg-background px-space-3 text-body text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+                  >
+                    <option value="">Prefer not to say</option>
+                    {GENDERS.filter((g) => g !== 'prefer_not').map((g) => (
+                      <option key={g} value={g}>
+                        {g.charAt(0).toUpperCase() + g.slice(1)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
 
-            <Button type="submit" disabled={save.isPending}>
-              {save.isPending ? 'Saving…' : 'Save changes'}
-            </Button>
-          </form>
-        </Card>
-      )}
-    </main>
+                <label className="flex flex-col gap-space-1">
+                  <span className="text-small font-medium text-foreground">Interests</span>
+                  <Input
+                    value={interests}
+                    onChange={(e) => setInterests(e.target.value)}
+                    placeholder="comma,separated,interests"
+                  />
+                </label>
+
+                {message && <p className="text-caption text-success">{message}</p>}
+                {error && (
+                  <p className="text-caption text-danger" role="alert">
+                    {error}
+                  </p>
+                )}
+
+                <Button type="submit" disabled={save.isPending}>
+                  {save.isPending ? 'Saving…' : 'Save changes'}
+                </Button>
+              </form>
+            </Card>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }

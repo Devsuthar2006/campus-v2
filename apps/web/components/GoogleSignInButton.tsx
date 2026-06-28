@@ -22,6 +22,7 @@ interface GoogleIdentityServices {
         callback: (response: GoogleCredentialResponse) => void;
       }) => void;
       renderButton: (parent: HTMLElement, options: Record<string, unknown>) => void;
+      prompt: (callback?: (notification: any) => void) => void;
     };
   };
 }
@@ -69,24 +70,53 @@ export function GoogleSignInButton({
 
   useEffect(() => {
     let cancelled = false;
+    let resizeObserver: ResizeObserver | null = null;
+
+    const renderResponsiveButton = () => {
+      if (!window.google || !containerRef.current) return;
+      const containerWidth = containerRef.current.clientWidth;
+      if (!containerWidth) return;
+
+      const targetWidth = Math.max(180, Math.min(Math.floor(containerWidth), 420));
+      containerRef.current.innerHTML = '';
+      window.google.accounts.id.renderButton(containerRef.current, {
+        theme: 'outline',
+        size: 'large',
+        shape: 'pill',
+        text: 'continue_with',
+        width: targetWidth,
+      });
+    };
+
     void loadGisScript().then(() => {
       if (cancelled || !window.google || !containerRef.current) return;
       window.google.accounts.id.initialize({
         client_id: clientEnv.googleClientId,
         callback: (response) => onCredential(response.credential),
       });
-      window.google.accounts.id.renderButton(containerRef.current, {
-        theme: 'outline',
-        size: 'large',
-        shape: 'pill',
-        text: 'continue_with',
-        width: 280,
+
+      renderResponsiveButton();
+
+      // Trigger Google One Tap prompt on the same page
+      window.google.accounts.id.prompt();
+
+      resizeObserver = new ResizeObserver(() => {
+        renderResponsiveButton();
       });
+      resizeObserver.observe(containerRef.current);
     });
+
     return () => {
       cancelled = true;
+      resizeObserver?.disconnect();
     };
   }, [onCredential]);
 
-  return <div ref={containerRef} aria-label="Sign in with Google" />;
+  return (
+    <div
+      ref={containerRef}
+      className="flex w-full min-w-0 justify-center overflow-hidden"
+      aria-label="Sign in with Google"
+    />
+  );
 }

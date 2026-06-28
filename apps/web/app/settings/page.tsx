@@ -66,80 +66,86 @@ export default function SettingsPage() {
   );
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-space-6 px-space-4 py-space-8 md:px-space-8">
-      <AppNav />
-      <div className="flex flex-col gap-space-1">
-        <h1 className="text-h1 text-foreground">Settings</h1>
-        <p className="text-body text-muted-foreground">
-          You control what your campus sees. Defaults favor your privacy.
-        </p>
+    <div className="flex h-[100dvh] flex-col overflow-hidden">
+      <div className="shrink-0">
+        <AppNav />
       </div>
-
-      {privacy && (
-        <Card className="flex flex-col gap-space-5">
+      <div className="flex-1 overflow-y-auto px-space-4 md:px-space-8 pb-24 md:pb-8">
+        <div className="mx-auto max-w-2xl flex flex-col gap-space-6 py-space-5">
           <div className="flex flex-col gap-space-1">
-            <CardTitle>Privacy</CardTitle>
-            <CardDescription>Presence, receipts, and visibility.</CardDescription>
+            <h1 className="text-h1 text-foreground">Settings</h1>
+            <p className="text-body text-muted-foreground">
+              You control what your campus sees. Defaults favor your privacy.
+            </p>
           </div>
 
-          <Toggle
-            label="Show online status"
-            description="Let friends see when you're active."
-            value={privacy.showOnlineStatus}
-            field="showOnlineStatus"
-          />
-          <Toggle
-            label="Show last seen"
-            description="Display when you were last active."
-            value={privacy.showLastSeen}
-            field="showLastSeen"
-          />
-          <Toggle
-            label="Send read receipts"
-            description="Others see when you've read their messages (and you see theirs)."
-            value={privacy.sendReadReceipts}
-            field="sendReadReceipts"
-          />
+          {privacy && (
+            <Card className="flex flex-col gap-space-5">
+              <div className="flex flex-col gap-space-1">
+                <CardTitle>Privacy</CardTitle>
+                <CardDescription>Presence, receipts, and visibility.</CardDescription>
+              </div>
 
-          <label className="flex flex-col gap-space-1">
-            <span className="text-body text-foreground">Profile visibility</span>
-            <select
-              value={privacy.profileVisibility}
-              onChange={(e) =>
-                update.mutate({
-                  profileVisibility: e.target.value as PrivacySettings['profileVisibility'],
-                })
-              }
-              className="h-11 rounded-input border border-border bg-background px-space-3 text-body text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
-            >
-              {PROFILE_VISIBILITIES.map((v) => (
-                <option key={v} value={v}>
-                  {v}
-                </option>
-              ))}
-            </select>
-          </label>
+              <Toggle
+                label="Show online status"
+                description="Let friends see when you're active."
+                value={privacy.showOnlineStatus}
+                field="showOnlineStatus"
+              />
+              <Toggle
+                label="Show last seen"
+                description="Display when you were last active."
+                value={privacy.showLastSeen}
+                field="showLastSeen"
+              />
+              <Toggle
+                label="Send read receipts"
+                description="Others see when you've read their messages (and you see theirs)."
+                value={privacy.sendReadReceipts}
+                field="sendReadReceipts"
+              />
 
-          <label className="flex flex-col gap-space-1">
-            <span className="text-body text-foreground">Who can send friend requests</span>
-            <select
-              value={privacy.allowFriendRequests}
-              onChange={(e) =>
-                update.mutate({
-                  allowFriendRequests: e.target.value as PrivacySettings['allowFriendRequests'],
-                })
-              }
-              className="h-11 rounded-input border border-border bg-background px-space-3 text-body text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
-            >
-              {FRIEND_REQUEST_POLICIES.map((v) => (
-                <option key={v} value={v}>
-                  {v}
-                </option>
-              ))}
-            </select>
-          </label>
-        </Card>
-      )}
-    </main>
+              <label className="flex flex-col gap-space-1">
+                <span className="text-body text-foreground">Profile visibility</span>
+                <select
+                  value={privacy.profileVisibility}
+                  onChange={(e) =>
+                    update.mutate({
+                      profileVisibility: e.target.value as PrivacySettings['profileVisibility'],
+                    })
+                  }
+                  className="h-11 rounded-input border border-border bg-background px-space-3 text-body text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+                >
+                  {PROFILE_VISIBILITIES.map((v) => (
+                    <option key={v} value={v}>
+                      {v}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="flex flex-col gap-space-1">
+                <span className="text-body text-foreground">Who can send friend requests</span>
+                <select
+                  value={privacy.allowFriendRequests}
+                  onChange={(e) =>
+                    update.mutate({
+                      allowFriendRequests: e.target.value as PrivacySettings['allowFriendRequests'],
+                    })
+                  }
+                  className="h-11 rounded-input border border-border bg-background px-space-3 text-body text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+                >
+                  {FRIEND_REQUEST_POLICIES.map((v) => (
+                    <option key={v} value={v}>
+                      {v}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </Card>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }

@@ -158,7 +158,7 @@ export function Chat({
       )}
 
       <form
-        className="flex items-center gap-space-2 border-t border-border pt-space-3"
+        className="flex items-center gap-space-2 border-t border-divider pt-space-3 pb-[env(safe-area-inset-bottom,16px)] md:pb-0"
         onSubmit={onSubmit}
       >
         <input
