@@ -149,102 +149,63 @@ export default function LandingPage() {
             <div className="mb-space-7 flex justify-center" aria-label="Campusly logo mark">
               <div className="relative flex h-24 w-24 items-center justify-center rounded-full border border-border/40 bg-surface/20 backdrop-blur-md shadow-[0_8px_32px_rgba(0,0,0,0.04)]">
                 <svg
-                  className="h-20 w-20 animate-[spin_45s_linear_infinite]"
+                  className="h-16 w-16"
                   viewBox="0 0 100 100"
                   fill="none"
                   xmlns="http://www.w3.org/2000/svg"
                 >
                   <defs>
-                    <radialGradient id="logoGlow" cx="50%" cy="50%" r="50%">
-                      <stop offset="0%" stopColor="#F97316" stopOpacity="0.25" />
-                      <stop offset="100%" stopColor="#F97316" stopOpacity="0" />
-                    </radialGradient>
-                    <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <linearGradient id="cGrad1" x1="0" y1="0" x2="100" y2="100">
                       <stop offset="0%" stopColor="#F97316" />
-                      <stop offset="100%" stopColor="#FB923C" />
+                      <stop offset="100%" stopColor="#EA580C" />
                     </linearGradient>
+                    <linearGradient id="cGrad2" x1="100" y1="0" x2="0" y2="100">
+                      <stop offset="0%" stopColor="#FB923C" />
+                      <stop offset="100%" stopColor="#F97316" />
+                    </linearGradient>
+                    <filter id="logoGlow" x="-20%" y="-20%" width="140%" height="140%">
+                      <feGaussianBlur stdDeviation="2.5" result="blur" />
+                      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                    </filter>
                   </defs>
-                  {/* Glow aura */}
-                  <circle cx="50" cy="50" r="40" fill="url(#logoGlow)" />
 
-                  {/* Outer orbit (forming shape of C) */}
-                  <path
-                    d="M72,22 A32,32 0 1,0 72,78"
+                  {/* Outer orbital track */}
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="42"
                     stroke="currentColor"
                     strokeWidth="0.8"
-                    strokeLinecap="round"
-                    className="text-border/60"
+                    strokeDasharray="4 4"
+                    className="text-border/40 animate-[spin_80s_linear_infinite]"
                   />
 
-                  {/* Constellation lattice lines */}
-                  <g stroke="#F97316" strokeWidth="0.8" strokeOpacity="0.3" strokeDasharray="1 1">
-                    <line x1="72" y1="22" x2="50" y2="16" />
-                    <line x1="50" y1="16" x2="28" y2="30" />
-                    <line x1="28" y1="30" x2="20" y2="50" />
-                    <line x1="20" y1="50" x2="28" y2="70" />
-                    <line x1="28" y1="70" x2="50" y2="84" />
-                    <line x1="50" y1="84" x2="72" y2="78" />
-                    {/* Cross lattices */}
-                    <line x1="72" y1="22" x2="28" y2="30" />
-                    <line x1="50" y1="16" x2="20" y2="50" />
-                    <line x1="28" y1="30" x2="28" y2="70" />
-                    <line x1="20" y1="50" x2="50" y2="84" />
-                    <line x1="28" y1="70" x2="72" y2="78" />
-                  </g>
+                  {/* Overlapping Loop 1 (Back arc) */}
+                  <path
+                    d="M75,32 A 28,28 0 1, 0 75,68"
+                    stroke="url(#cGrad1)"
+                    strokeWidth="9"
+                    strokeLinecap="round"
+                  />
 
-                  {/* Nodes */}
-                  <g>
-                    {/* Node 1 */}
-                    <circle cx="72" cy="22" r="3" fill="#F97316" className="animate-pulse" />
-                    <circle
-                      cx="72"
-                      cy="22"
-                      r="6"
-                      stroke="#F97316"
-                      strokeWidth="0.5"
-                      strokeOpacity="0.4"
-                      className="animate-ping"
-                      style={{ animationDuration: '3.5s' }}
-                    />
+                  {/* Overlapping Loop 2 (Front offset arc creating depth) */}
+                  <path
+                    d="M75,32 C 60,18 36,22 29,38 C 21,54 25,72 43,78"
+                    stroke="url(#cGrad2)"
+                    strokeWidth="9"
+                    strokeLinecap="round"
+                  />
 
-                    {/* Node 2 */}
-                    <circle cx="50" cy="16" r="2.5" fill="#E4E4E7" />
-
-                    {/* Node 3 */}
-                    <circle cx="28" cy="30" r="3.5" fill="url(#logoGrad)" />
-
-                    {/* Node 4 */}
-                    <circle cx="20" cy="50" r="3.2" fill="#E4E4E7" />
-                    <circle
-                      cx="20"
-                      cy="50"
-                      r="7"
-                      stroke="#E4E4E7"
-                      strokeWidth="0.5"
-                      strokeOpacity="0.3"
-                      className="animate-ping"
-                      style={{ animationDuration: '4.5s' }}
-                    />
-
-                    {/* Node 5 */}
-                    <circle cx="28" cy="70" r="3.5" fill="url(#logoGrad)" />
-
-                    {/* Node 6 */}
-                    <circle cx="50" cy="84" r="2.5" fill="#E4E4E7" />
-
-                    {/* Node 7 */}
-                    <circle cx="72" cy="78" r="3" fill="#F97316" className="animate-pulse" />
-                    <circle
-                      cx="72"
-                      cy="78"
-                      r="6"
-                      stroke="#F97316"
-                      strokeWidth="0.5"
-                      strokeOpacity="0.4"
-                      className="animate-ping"
-                      style={{ animationDuration: '2.8s' }}
-                    />
-                  </g>
+                  {/* Connecting spark */}
+                  <circle
+                    cx="75"
+                    cy="32"
+                    r="4.5"
+                    fill="#FFFFFF"
+                    filter="url(#logoGlow)"
+                    className="animate-pulse"
+                  />
+                  <circle cx="75" cy="32" r="2" fill="#F97316" />
                 </svg>
               </div>
             </div>
