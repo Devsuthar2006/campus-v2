@@ -47,7 +47,7 @@ export function createApp(): Express {
           callback(null, true);
           return;
         }
-        callback(new Error('Not allowed by CORS'));
+        callback(null, false);
       },
       credentials: true,
     }),
