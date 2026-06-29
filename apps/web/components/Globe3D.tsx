@@ -260,95 +260,87 @@ export function Globe3D({ isSearching = false, className = '' }: GlobeProps) {
     // Clear
     ctx.clearRect(0, 0, w, h);
 
-    /* ---- Outer glow circle behind the globe ---- */
-    const glowGrad = ctx.createRadialGradient(cx, cy, radius * 0.3, cx, cy, radius * 1.4);
-    glowGrad.addColorStop(0, `rgba(${brandRGB}, ${dark ? 0.06 : 0.08})`);
-    glowGrad.addColorStop(0.5, `rgba(${brandRGB}, ${dark ? 0.02 : 0.03})`);
+    /* ---- 1. Outer glow circle behind the globe ---- */
+    const glowGrad = ctx.createRadialGradient(cx, cy, radius * 0.3, cx, cy, radius * 1.5);
+    glowGrad.addColorStop(0, `rgba(${brandRGB}, ${dark ? 0.08 : 0.1})`);
+    glowGrad.addColorStop(0.5, `rgba(${brandRGB}, ${dark ? 0.03 : 0.04})`);
     glowGrad.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.beginPath();
-    ctx.arc(cx, cy, radius * 1.4, 0, Math.PI * 2);
+    ctx.arc(cx, cy, radius * 1.5, 0, Math.PI * 2);
     ctx.fillStyle = glowGrad;
     ctx.fill();
 
-    /* ---- Pulse rings (searching state) ---- */
+    /* ---- 2. Pulse rings (searching state) ---- */
     if (isSearching) {
       const now = performance.now();
       for (let i = 0; i < 3; i++) {
         const t = (now / 2000 + i / 3) % 1;
-        const r = radius * (0.5 + t * 1.2);
-        const alpha = Math.max(0, 0.35 * (1 - t));
+        const r = radius * (0.6 + t * 1.2);
+        const alpha = Math.max(0, 0.4 * (1 - t));
         ctx.beginPath();
         ctx.arc(cx, cy, r, 0, Math.PI * 2);
         ctx.strokeStyle = `rgba(${brandRGB}, ${alpha})`;
-        ctx.lineWidth = 1.5;
+        ctx.lineWidth = 1.8;
         ctx.stroke();
       }
     }
 
-    /* ---- Helper: transform and project ---- */
-    const tp = (p: Point3D) => project(rotateX(rotateY(p, rotY), tiltX), cx, cy, radius, fov);
-
-    /* ---- Latitude lines (grid) ---- */
+    /* ---- 3. Draw BACK-facing elements (z < -0.15) ---- */
+    // Back Latitude lines
     const latLines = [-60, -30, 0, 30, 60];
     for (const lat of latLines) {
       ctx.beginPath();
+      let first = true;
       for (let lng = 0; lng <= 360; lng += 4) {
         const p3 = latLngToXYZ(lng, lat);
-        const pp = tp(p3);
-        const alpha = Math.max(0, p3.z > -0.2 ? (dark ? 0.12 : 0.18) : dark ? 0.04 : 0.06);
-        if (lng === 0) {
-          ctx.moveTo(pp.x, pp.y);
+        const r3 = rotateX(rotateY(p3, rotY), tiltX);
+        if (r3.z < -0.15) {
+          const pp = project(r3, cx, cy, radius, fov);
+          const alpha = Math.max(0, 0.15 * (1 + r3.z) * (dark ? 0.4 : 0.6));
+          if (first) {
+            ctx.moveTo(pp.x, pp.y);
+            first = false;
+          } else {
+            ctx.lineTo(pp.x, pp.y);
+          }
+          ctx.strokeStyle = `rgba(${brandRGB}, ${alpha})`;
         } else {
-          ctx.lineTo(pp.x, pp.y);
+          first = true;
         }
-        ctx.strokeStyle = `rgba(${brandRGB}, ${alpha})`;
       }
-      ctx.lineWidth = 0.6;
-      ctx.stroke();
-    }
-
-    /* ---- Longitude lines (grid) ---- */
-    for (let lng = 0; lng < 360; lng += 30) {
-      ctx.beginPath();
-      for (let lat = -90; lat <= 90; lat += 4) {
-        const p3 = latLngToXYZ(lng, lat);
-        const pp = tp(p3);
-        if (lat === -90) ctx.moveTo(pp.x, pp.y);
-        else ctx.lineTo(pp.x, pp.y);
-      }
-      ctx.strokeStyle = `rgba(${brandRGB}, ${dark ? 0.08 : 0.12})`;
       ctx.lineWidth = 0.5;
       ctx.stroke();
     }
 
-    /* ---- Continent outlines ---- */
-    for (const path of CONTINENT_PATHS) {
-      // Draw filled glow path for front-facing parts
+    // Back Longitude lines
+    for (let lng = 0; lng < 360; lng += 30) {
       ctx.beginPath();
-      let started = false;
-      for (const [lng, lat] of path) {
+      let first = true;
+      for (let lat = -90; lat <= 90; lat += 4) {
         const p3 = latLngToXYZ(lng, lat);
         const r3 = rotateX(rotateY(p3, rotY), tiltX);
-        const pp = project(r3, cx, cy, radius, fov);
-        // Only draw front-facing segments
-        if (r3.z > -0.15) {
-          if (!started) {
+        if (r3.z < -0.15) {
+          const pp = project(r3, cx, cy, radius, fov);
+          const alpha = Math.max(0, 0.12 * (1 + r3.z) * (dark ? 0.4 : 0.6));
+          if (first) {
             ctx.moveTo(pp.x, pp.y);
-            started = true;
+            first = false;
           } else {
             ctx.lineTo(pp.x, pp.y);
           }
+          ctx.strokeStyle = `rgba(${brandRGB}, ${alpha})`;
         } else {
-          started = false;
+          first = true;
         }
       }
-      ctx.strokeStyle = `rgba(${brandRGB}, ${dark ? 0.55 : 0.7})`;
-      ctx.lineWidth = 1.8;
+      ctx.lineWidth = 0.4;
       ctx.stroke();
+    }
 
-      // Draw back-facing parts dimmer
+    // Back Continents
+    for (const path of CONTINENT_PATHS) {
       ctx.beginPath();
-      started = false;
+      let started = false;
       for (const [lng, lat] of path) {
         const p3 = latLngToXYZ(lng, lat);
         const r3 = rotateX(rotateY(p3, rotY), tiltX);
@@ -364,34 +356,156 @@ export function Globe3D({ isSearching = false, className = '' }: GlobeProps) {
           started = false;
         }
       }
-      ctx.strokeStyle = `rgba(${brandRGB}, ${dark ? 0.1 : 0.15})`;
-      ctx.lineWidth = 1;
+      ctx.strokeStyle = `rgba(${brandRGB}, ${dark ? 0.08 : 0.12})`;
+      ctx.lineWidth = 0.8;
       ctx.stroke();
     }
 
-    /* ---- Orbital rings (ellipses around the globe) ---- */
-    const orbitAngles = [0.15, 0.6, 1.1];
+    /* ---- 4. Draw SEMI-TRANSPARENT GLOBE BODY (Realistic volumetric masking) ---- */
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius * 0.99, 0, Math.PI * 2);
+
+    const bodyGrad = ctx.createRadialGradient(
+      cx - radius * 0.15,
+      cy - radius * 0.15,
+      radius * 0.2,
+      cx,
+      cy,
+      radius,
+    );
+    if (dark) {
+      bodyGrad.addColorStop(0, 'rgba(16, 18, 23, 0.75)'); // Center translucent gray
+      bodyGrad.addColorStop(0.8, 'rgba(10, 11, 14, 0.93)'); // Mid shadow
+      bodyGrad.addColorStop(1, 'rgba(5, 5, 7, 0.98)'); // Dark edge shadow
+    } else {
+      bodyGrad.addColorStop(0, 'rgba(255, 255, 255, 0.65)'); // Center translucent white
+      bodyGrad.addColorStop(0.8, 'rgba(242, 244, 248, 0.88)'); // Soft blue-ish white
+      bodyGrad.addColorStop(1, 'rgba(215, 220, 228, 0.95)'); // Shaded border edge
+    }
+    ctx.fillStyle = bodyGrad;
+    ctx.fill();
+
+    // Atmosphere Ring Shadow (inner stroke for depth)
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+    ctx.strokeStyle = dark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.06)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    /* ---- 5. Draw FRONT-facing elements (z >= -0.15) ---- */
+    // Front Latitude lines
+    for (const lat of latLines) {
+      ctx.beginPath();
+      let first = true;
+      for (let lng = 0; lng <= 360; lng += 4) {
+        const p3 = latLngToXYZ(lng, lat);
+        const r3 = rotateX(rotateY(p3, rotY), tiltX);
+        if (r3.z >= -0.15) {
+          const pp = project(r3, cx, cy, radius, fov);
+          const alpha = Math.max(0, (0.08 + r3.z * 0.15) * (dark ? 0.7 : 0.9));
+          if (first) {
+            ctx.moveTo(pp.x, pp.y);
+            first = false;
+          } else {
+            ctx.lineTo(pp.x, pp.y);
+          }
+          ctx.strokeStyle = `rgba(${brandRGB}, ${alpha})`;
+        } else {
+          first = true;
+        }
+      }
+      ctx.lineWidth = 0.8;
+      ctx.stroke();
+    }
+
+    // Front Longitude lines
+    for (let lng = 0; lng < 360; lng += 30) {
+      ctx.beginPath();
+      let first = true;
+      for (let lat = -90; lat <= 90; lat += 4) {
+        const p3 = latLngToXYZ(lng, lat);
+        const r3 = rotateX(rotateY(p3, rotY), tiltX);
+        if (r3.z >= -0.15) {
+          const pp = project(r3, cx, cy, radius, fov);
+          const alpha = Math.max(0, (0.06 + r3.z * 0.12) * (dark ? 0.6 : 0.8));
+          if (first) {
+            ctx.moveTo(pp.x, pp.y);
+            first = false;
+          } else {
+            ctx.lineTo(pp.x, pp.y);
+          }
+          ctx.strokeStyle = `rgba(${brandRGB}, ${alpha})`;
+        } else {
+          first = true;
+        }
+      }
+      ctx.lineWidth = 0.6;
+      ctx.stroke();
+    }
+
+    // Front Continents (Solid, thick, glowing)
+    for (const path of CONTINENT_PATHS) {
+      ctx.beginPath();
+      let started = false;
+      for (const [lng, lat] of path) {
+        const p3 = latLngToXYZ(lng, lat);
+        const r3 = rotateX(rotateY(p3, rotY), tiltX);
+        const pp = project(r3, cx, cy, radius, fov);
+        if (r3.z > -0.15) {
+          if (!started) {
+            ctx.moveTo(pp.x, pp.y);
+            started = true;
+          } else {
+            ctx.lineTo(pp.x, pp.y);
+          }
+        } else {
+          started = false;
+        }
+      }
+      // Glowing backing line
+      ctx.strokeStyle = `rgba(${brandRGB}, ${dark ? 0.3 : 0.35})`;
+      ctx.lineWidth = 3.5;
+      ctx.stroke();
+
+      // Sharp core line
+      ctx.strokeStyle = `rgba(${brandRGB}, ${dark ? 0.85 : 0.95})`;
+      ctx.lineWidth = 2.0;
+      ctx.stroke();
+    }
+
+    /* ---- 6. Orbital rings (ellipses around the globe with depth sorting) ---- */
+    const orbitAngles = [0.2, 0.6, 1.05];
     for (const tilt of orbitAngles) {
       ctx.beginPath();
       for (let a = 0; a <= 360; a += 3) {
         const rad = (a * Math.PI) / 180;
         const p: Point3D = {
-          x: Math.cos(rad) * 1.15,
-          y: Math.sin(rad) * 1.15 * Math.sin(tilt),
-          z: Math.sin(rad) * 1.15 * Math.cos(tilt),
+          x: Math.cos(rad) * 1.14,
+          y: Math.sin(rad) * 1.14 * Math.sin(tilt),
+          z: Math.sin(rad) * 1.14 * Math.cos(tilt),
         };
-        const pp = project(rotateX(rotateY(p, rotY * 0.7 + tilt), tiltX), cx, cy, radius, fov);
-        if (a === 0) ctx.moveTo(pp.x, pp.y);
-        else ctx.lineTo(pp.x, pp.y);
+        const r3 = rotateX(rotateY(p, rotY * 0.75 + tilt), tiltX);
+
+        // Only draw segment if it is in front of the globe body (or dim if behind)
+        const pp = project(r3, cx, cy, radius, fov);
+        const behindGlobe = r3.z < 0 && (pp.x - cx) ** 2 + (pp.y - cy) ** 2 < (radius * 0.98) ** 2;
+
+        if (!behindGlobe) {
+          if (a === 0) ctx.moveTo(pp.x, pp.y);
+          else ctx.lineTo(pp.x, pp.y);
+        } else {
+          ctx.stroke();
+          ctx.beginPath();
+        }
       }
-      ctx.strokeStyle = `rgba(${brandRGB}, ${dark ? 0.12 : 0.2})`;
-      ctx.lineWidth = 0.8;
-      ctx.setLineDash([6, 8]);
+      ctx.strokeStyle = `rgba(${brandRGB}, ${dark ? 0.22 : 0.35})`;
+      ctx.lineWidth = 1.0;
+      ctx.setLineDash([8, 8]);
       ctx.stroke();
       ctx.setLineDash([]);
     }
 
-    /* ---- Glowing nodes on the sphere surface ---- */
+    /* ---- 7. Glowing nodes on the sphere surface ---- */
     const nodePositions: [number, number][] = [
       [-75, 40],
       [10, 50],
@@ -413,15 +527,15 @@ export function Globe3D({ isSearching = false, className = '' }: GlobeProps) {
       const p3 = latLngToXYZ(lng, lat);
       const r3 = rotateX(rotateY(p3, rotY), tiltX);
       const pp = project(r3, cx, cy, radius, fov);
-      if (r3.z > -0.1) {
-        const alpha = 0.3 + r3.z * 0.7;
-        const size = 2 + r3.z * 2;
+      if (r3.z > -0.15) {
+        const alpha = 0.45 + r3.z * 0.55;
+        const size = 3 + r3.z * 2.5;
         // Glow
-        const glow = ctx.createRadialGradient(pp.x, pp.y, 0, pp.x, pp.y, size * 4);
-        glow.addColorStop(0, `rgba(${brandRGB}, ${alpha * 0.5})`);
+        const glow = ctx.createRadialGradient(pp.x, pp.y, 0, pp.x, pp.y, size * 5);
+        glow.addColorStop(0, `rgba(${brandRGB}, ${alpha * 0.65})`);
         glow.addColorStop(1, `rgba(${brandRGB}, 0)`);
         ctx.beginPath();
-        ctx.arc(pp.x, pp.y, size * 4, 0, Math.PI * 2);
+        ctx.arc(pp.x, pp.y, size * 5, 0, Math.PI * 2);
         ctx.fillStyle = glow;
         ctx.fill();
         // Core
@@ -432,13 +546,13 @@ export function Globe3D({ isSearching = false, className = '' }: GlobeProps) {
       }
     }
 
-    /* ---- Connection lines between nearby front-facing nodes ---- */
+    /* ---- 8. Connection lines between nearby front-facing nodes ---- */
     const frontNodes: { x: number; y: number; z: number }[] = [];
     for (const [lng, lat] of nodePositions) {
       const p3 = latLngToXYZ(lng, lat);
       const r3 = rotateX(rotateY(p3, rotY), tiltX);
       const pp = project(r3, cx, cy, radius, fov);
-      if (r3.z > 0.1) frontNodes.push({ x: pp.x, y: pp.y, z: r3.z });
+      if (r3.z > 0.05) frontNodes.push({ x: pp.x, y: pp.y, z: r3.z });
     }
     for (let i = 0; i < frontNodes.length; i++) {
       const nodeI = frontNodes[i];
@@ -449,30 +563,49 @@ export function Globe3D({ isSearching = false, className = '' }: GlobeProps) {
         const dx = nodeI.x - nodeJ.x;
         const dy = nodeI.y - nodeJ.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < radius * 0.8) {
-          const alpha = Math.max(0, 0.15 * (1 - dist / (radius * 0.8)));
+        if (dist < radius * 0.75) {
+          const alpha = Math.max(0, 0.28 * (1 - dist / (radius * 0.75)));
           ctx.beginPath();
           ctx.moveTo(nodeI.x, nodeI.y);
           ctx.lineTo(nodeJ.x, nodeJ.y);
           ctx.strokeStyle = `rgba(${brandRGB}, ${alpha})`;
-          ctx.lineWidth = 0.6;
+          ctx.lineWidth = 0.9;
           ctx.stroke();
         }
       }
     }
 
-    /* ---- Floating particles around the globe ---- */
+    /* ---- 9. Atmosphere Highlights / Fresnel Edge Glow (Overlay) ---- */
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+    const fresnel = ctx.createRadialGradient(cx, cy, radius * 0.85, cx, cy, radius);
+    fresnel.addColorStop(0, 'rgba(255, 153, 0, 0)');
+    fresnel.addColorStop(0.5, `rgba(${brandRGB}, ${dark ? 0.08 : 0.06})`);
+    fresnel.addColorStop(1, `rgba(${brandRGB}, ${dark ? 0.45 : 0.35})`);
+    ctx.fillStyle = fresnel;
+    ctx.fill();
+
+    /* ---- 10. Floating particles around the globe ---- */
     const now = performance.now();
-    for (let i = 0; i < 20; i++) {
-      const t = (now / (3000 + i * 500) + i * 0.7) % (Math.PI * 2);
-      const r = radius * (1.1 + Math.sin(i * 1.3) * 0.3);
-      const px = cx + Math.cos(t) * r * (0.8 + Math.sin(i * 2.1) * 0.2);
-      const py = cy + Math.sin(t) * r * 0.4 * Math.cos(i * 0.9);
-      const alpha = 0.15 + Math.sin(now / 1000 + i) * 0.1;
-      ctx.beginPath();
-      ctx.arc(px, py, 1.5, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(${brandRGB}, ${alpha})`;
-      ctx.fill();
+    for (let i = 0; i < 24; i++) {
+      const t = (now / (3500 + i * 400) + i * 0.85) % (Math.PI * 2);
+      const r = radius * (1.1 + Math.sin(i * 1.5) * 0.28);
+      const px = cx + Math.cos(t) * r * (0.85 + Math.sin(i * 2.3) * 0.15);
+      const py = cy + Math.sin(t) * r * 0.45 * Math.cos(i * 0.75);
+
+      // Determine if particle is behind the globe body
+      const particleZ = Math.sin(t) * Math.sin(i * 0.75);
+      const behindGlobe =
+        particleZ < -0.2 && (px - cx) ** 2 + (py - cy) ** 2 < (radius * 0.98) ** 2;
+
+      if (!behindGlobe) {
+        const alpha = 0.25 + Math.sin(now / 800 + i) * 0.15;
+        const size = 1.5 + Math.sin(now / 1200 + i * 3) * 0.5;
+        ctx.beginPath();
+        ctx.arc(px, py, size, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${brandRGB}, ${alpha})`;
+        ctx.fill();
+      }
     }
 
     frameRef.current = requestAnimationFrame(draw);
