@@ -86,6 +86,7 @@ export function Composer({
         onChange={(e) => setBody(e.target.value)}
         placeholder="Share something with your campus…"
         maxLength={5000}
+        className="border-none focus-visible:ring-0 focus-visible:ring-offset-0 bg-muted/30"
       />
 
       {poll && (

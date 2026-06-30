@@ -112,7 +112,7 @@ export function Chat({
 
   return (
     <div className="flex h-full w-full flex-col">
-      <div className="flex-1 overflow-y-auto px-space-1 py-space-2">
+      <div className="flex-1 overflow-y-auto px-space-4 py-space-4 bg-chat-doodles">
         {messages.length === 0 ? (
           <p className="py-space-8 text-center text-caption text-muted-foreground">
             {contextType === 'friendship'
