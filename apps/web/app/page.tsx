@@ -147,58 +147,59 @@ export default function LandingPage() {
           {/* Hero */}
           <main className="flex flex-1 flex-col items-center justify-center px-space-5 text-center">
             <div className="mb-space-7 flex justify-center" aria-label="AnonymousU logo mark">
-              <div className="relative flex h-24 w-24 items-center justify-center rounded-full border border-border/40 bg-surface/20 backdrop-blur-md shadow-[0_8px_32px_rgba(0,0,0,0.04)]">
+              <div className="relative flex h-28 w-28 items-center justify-center rounded-2xl bg-[#151820] shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/5">
                 <svg
-                  className="h-16 w-16"
+                  className="h-20 w-20"
                   viewBox="0 0 100 100"
                   fill="none"
                   xmlns="http://www.w3.org/2000/svg"
                 >
                   <defs>
-                    <linearGradient id="uGrad" x1="0" y1="0" x2="100" y2="100">
-                      <stop offset="0%" stopColor="#FFB347" />
-                      <stop offset="50%" stopColor="#FF9900" />
-                      <stop offset="100%" stopColor="#EA580C" />
+                    <linearGradient
+                      id="uGrad"
+                      x1="50"
+                      y1="0"
+                      x2="50"
+                      y2="100"
+                      gradientUnits="userSpaceOnUse"
+                    >
+                      <stop offset="0%" stopColor="#FFC04D" />
+                      <stop offset="40%" stopColor="#FF9900" />
+                      <stop offset="100%" stopColor="#D97706" />
                     </linearGradient>
-                    <filter id="logoGlow" x="-20%" y="-20%" width="140%" height="140%">
-                      <feGaussianBlur stdDeviation="2" result="blur" />
-                      <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                    </filter>
+                    <linearGradient
+                      id="glossArc"
+                      x1="20"
+                      y1="40"
+                      x2="60"
+                      y2="90"
+                      gradientUnits="userSpaceOnUse"
+                    >
+                      <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.15" />
+                      <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
+                    </linearGradient>
+                    <clipPath id="uClip">
+                      <rect x="0" y="0" width="100" height="100" rx="8" />
+                    </clipPath>
                   </defs>
 
-                  {/* Outer orbital ring */}
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="46"
-                    stroke="currentColor"
-                    strokeWidth="0.6"
-                    strokeDasharray="3 5"
-                    className="text-border/30 animate-[spin_90s_linear_infinite]"
-                  />
-
-                  {/* Bold U shape */}
+                  {/* Thick solid U shape — outer path minus inner cutout */}
                   <path
-                    d="M24,18 L24,58 C24,74 36,86 50,86 C64,86 76,74 76,58 L76,18"
-                    stroke="url(#uGrad)"
-                    strokeWidth="11"
-                    strokeLinecap="round"
-                    fill="none"
+                    d="M14,8 L14,60 C14,82 30,96 50,96 C70,96 86,82 86,60 L86,8 L70,8 L70,60 C70,72 61,80 50,80 C39,80 30,72 30,60 L30,8 Z"
+                    fill="url(#uGrad)"
                   />
 
-                  {/* Faceless silhouette head */}
-                  <circle cx="50" cy="30" r="12" fill="url(#uGrad)" />
+                  {/* Head silhouette — circle sitting on top of shoulders */}
+                  <ellipse cx="50" cy="30" rx="11" ry="12" fill="url(#uGrad)" />
 
-                  {/* Subtle glow dot on top */}
-                  <circle
-                    cx="50"
-                    cy="16"
-                    r="3"
-                    fill="#FFFFFF"
-                    filter="url(#logoGlow)"
-                    className="animate-pulse"
+                  {/* Shoulders — merge into the inner U walls */}
+                  <path d="M30,60 C30,54 36,44 50,44 C64,44 70,54 70,60" fill="url(#uGrad)" />
+
+                  {/* Subtle glossy arc sweep for depth */}
+                  <path
+                    d="M14,60 C14,60 20,50 30,75 C38,90 50,96 50,96 C30,96 14,82 14,60 Z"
+                    fill="url(#glossArc)"
                   />
-                  <circle cx="50" cy="16" r="1.5" fill="#FF9900" />
                 </svg>
               </div>
             </div>
