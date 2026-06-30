@@ -31,9 +31,9 @@ export default function MatchPage() {
 
   // Reset friend UI whenever the session changes.
   useEffect(() => {
-    setFriendState('idle');
+    setFriendState(partner ? 'accepted' : 'idle');
     setIncomingRequestId(null);
-  }, [sessionId]);
+  }, [sessionId, partner]);
 
   // Listen for the partner's friend request / acceptance during the session.
   useEffect(() => {
@@ -101,8 +101,18 @@ export default function MatchPage() {
         <AppNav />
       </div>
 
-      <div className="flex-1 overflow-hidden flex flex-col px-space-4 md:px-space-8 pb-24 md:pb-8">
-        <div className="mx-auto max-w-5xl w-full flex-1 flex flex-col py-space-5 overflow-hidden">
+      <div
+        className={cn(
+          'flex-1 overflow-hidden flex flex-col pb-24 md:pb-8',
+          state === 'in_session' ? 'px-0 md:px-space-8' : 'px-space-4 md:px-space-8',
+        )}
+      >
+        <div
+          className={cn(
+            'mx-auto w-full flex-1 flex flex-col overflow-hidden',
+            state === 'in_session' ? 'max-w-5xl py-0 md:py-space-5' : 'max-w-5xl py-space-5',
+          )}
+        >
           {state !== 'in_session' ? (
             /* ── Idle / Waiting: Globe + Button only ── */
             <div className="flex-1 flex flex-col items-center justify-center max-w-xl mx-auto w-full select-none">
@@ -140,66 +150,81 @@ export default function MatchPage() {
           ) : (
             /* ── Connected Chat Screen ── */
             <div className="flex-1 flex flex-col overflow-hidden">
-              <div className="flex flex-col gap-space-1 mb-space-4 shrink-0">
-                <h1 className="text-h1 text-foreground">Meet Someone</h1>
-              </div>
-
-              <Card className="flex flex-col overflow-hidden flex-1 p-space-4 md:p-space-5 border-border/60">
+              <Card className="flex flex-col overflow-hidden flex-1 p-0 md:p-space-5 border-0 md:border md:border-border/60 rounded-none md:rounded-xl">
                 {sessionId && (
                   <div className="flex w-full flex-col h-full overflow-hidden">
                     {/* Chat Header */}
-                    <div className="flex items-center justify-between gap-space-3 border-b border-divider pb-space-3 shrink-0">
-                      <div className="flex items-center gap-space-2 select-none">
-                        <span className="inline-block h-2.5 w-2.5 rounded-full bg-success animate-pulse" />
-                        {partner ? (
-                          <div className="flex items-center gap-space-2">
-                            <Avatar name={partner.name} mediaId={partner.avatarMediaId} size="sm" />
-                            <span className="text-body font-medium text-foreground flex items-center gap-1">
-                              {partner.name}
-                              <span className="text-small text-brand font-semibold">(Friend)</span>
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="text-body font-medium text-foreground">
-                            Connected — anonymous
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex gap-space-2">
-                        {friendState === 'incoming' ? (
+                    <div className="flex flex-col gap-space-2 border-b border-divider px-space-4 py-space-3 md:px-0 shrink-0">
+                      {/* Top row: status + leave/report */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-space-2 select-none min-w-0">
+                          <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-success animate-pulse" />
+                          {partner ? (
+                            <div className="flex items-center gap-space-2 min-w-0">
+                              <Avatar
+                                name={partner.name}
+                                mediaId={partner.avatarMediaId}
+                                size="sm"
+                              />
+                              <span className="text-body font-medium text-foreground truncate">
+                                {partner.name}
+                              </span>
+                              <span className="text-small text-brand font-semibold shrink-0">
+                                Friend
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-body font-medium text-foreground">Anonymous</span>
+                          )}
+                        </div>
+
+                        {/* Action buttons */}
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {friendState === 'incoming' ? (
+                            <Button
+                              size="sm"
+                              onClick={acceptFriend}
+                              className="text-xs px-2.5 py-1 h-auto"
+                            >
+                              Accept
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              onClick={addFriend}
+                              disabled={friendState !== 'idle'}
+                              className="text-xs px-2.5 py-1 h-auto"
+                            >
+                              {friendState === 'accepted'
+                                ? '✓ Friends'
+                                : friendState === 'sent'
+                                  ? 'Sent ✓'
+                                  : '+ Add'}
+                            </Button>
+                          )}
                           <Button
+                            variant="secondary"
                             size="sm"
-                            onClick={acceptFriend}
-                            aria-label="Accept friend request"
+                            onClick={leaveSession}
+                            className="text-xs px-2.5 py-1 h-auto"
                           >
-                            Accept request
+                            Leave
                           </Button>
-                        ) : (
                           <Button
+                            variant="ghost"
                             size="sm"
-                            onClick={addFriend}
-                            disabled={friendState !== 'idle'}
-                            aria-label="Add friend"
+                            onClick={() => setReporting((v) => !v)}
+                            className="text-xs px-2.5 py-1 h-auto"
                           >
-                            {friendState === 'accepted'
-                              ? 'Friends'
-                              : friendState === 'sent'
-                                ? 'Request sent'
-                                : 'Add friend'}
+                            Report
                           </Button>
-                        )}
-                        <Button variant="secondary" size="sm" onClick={leaveSession}>
-                          Leave
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={() => setReporting((v) => !v)}>
-                          Report
-                        </Button>
+                        </div>
                       </div>
                     </div>
 
                     {/* Report popup */}
                     {reporting && (
-                      <div className="flex flex-wrap justify-center gap-space-2 py-space-3 border-b border-divider bg-surface/30 shrink-0">
+                      <div className="flex flex-wrap justify-center gap-space-2 py-space-3 border-b border-divider bg-surface/30 shrink-0 px-space-4 md:px-0">
                         {REPORT_REASONS.map((r) => (
                           <Button key={r} variant="danger" size="sm" onClick={() => report(r)}>
                             {r}
@@ -209,7 +234,7 @@ export default function MatchPage() {
                     )}
 
                     {/* Active Chat box (scrolls internally) */}
-                    <div className="flex-1 overflow-hidden min-h-0 mt-space-2">
+                    <div className="flex-1 overflow-hidden min-h-0 mt-space-2 px-space-4 md:px-0">
                       <Chat contextType="anon_session" contextId={sessionId} selfId={user.id} />
                     </div>
                   </div>
