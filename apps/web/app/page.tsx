@@ -147,7 +147,7 @@ export default function LandingPage() {
           {/* Hero */}
           <main className="flex flex-1 flex-col items-center justify-center px-space-5 text-center">
             <div className="mb-space-7 flex justify-center" aria-label="AnonymousU logo mark">
-              <div className="relative flex h-28 w-28 items-center justify-center rounded-2xl bg-[#151820] shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/5">
+              <div className="relative flex h-28 w-28 items-center justify-center">
                 <svg
                   className="h-20 w-20"
                   viewBox="0 0 100 100"
