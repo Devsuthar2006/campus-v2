@@ -42,7 +42,7 @@ export function AppNav() {
           href="/match"
           className="font-display text-h3 font-bold tracking-tight text-foreground hover:opacity-90 select-none"
         >
-          Campus<span className="text-brand">ly</span>
+          Anonymous<span className="text-brand">U</span>
         </Link>
 
         {/* Desktop Links (Hidden on Mobile) */}
