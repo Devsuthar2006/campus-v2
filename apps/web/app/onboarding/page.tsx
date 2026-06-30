@@ -121,7 +121,7 @@ export default function OnboardingPage() {
           )}
 
           <Button type="submit" disabled={submitting}>
-            {submitting ? 'Saving…' : 'Enter Campusly'}
+            {submitting ? 'Saving…' : 'Enter AnonymousU'}
           </Button>
         </form>
       </Card>

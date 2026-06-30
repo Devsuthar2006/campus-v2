@@ -55,7 +55,7 @@ export default function FriendsPage() {
             <div className="flex flex-col gap-space-1">
               <h1 className="text-h1 text-foreground">Friends</h1>
               <p className="text-body text-muted-foreground">
-                Connections you made on Campusly. Friend chats stay with you.
+                Connections you made on AnonymousU. Friend chats stay with you.
               </p>
             </div>
 

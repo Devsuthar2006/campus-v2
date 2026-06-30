@@ -12,7 +12,7 @@ import { cn } from '../lib/utils';
 /**
  * Public landing / welcome page — the first impression for a visitor. Premium
  * dark hero with an animated "constellation" backdrop (students connecting),
- * the Campusly wordmark in the display face, and a single clear call to action.
+ * the AnonymousU wordmark in the display face, and a single clear call to action.
  * Signed-in users are sent straight into the app.
  */
 export default function LandingPage() {
@@ -146,7 +146,7 @@ export default function LandingPage() {
 
           {/* Hero */}
           <main className="flex flex-1 flex-col items-center justify-center px-space-5 text-center">
-            <div className="mb-space-7 flex justify-center" aria-label="Campusly logo mark">
+            <div className="mb-space-7 flex justify-center" aria-label="AnonymousU logo mark">
               <div className="relative flex h-24 w-24 items-center justify-center rounded-full border border-border/40 bg-surface/20 backdrop-blur-md shadow-[0_8px_32px_rgba(0,0,0,0.04)]">
                 <svg
                   className="h-16 w-16"
@@ -211,7 +211,7 @@ export default function LandingPage() {
             </div>
 
             <h1 className="font-display text-display tracking-tight">
-              Campus<span className="text-brand">ly</span>
+              Anonymous<span className="text-brand">U</span>
             </h1>
 
             <div className="mt-space-8 w-full max-w-3xl overflow-hidden">
@@ -228,7 +228,7 @@ export default function LandingPage() {
                       onClick={openSignIn}
                       className="inline-flex h-12 items-center justify-center rounded-button bg-brand px-space-8 text-body font-semibold text-brand-foreground transition-transform hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                     >
-                      Enter Campusly
+                      Enter AnonymousU
                     </button>
                   </div>
 
@@ -278,7 +278,7 @@ export default function LandingPage() {
                     <div className="w-full text-center">
                       <h2 className="text-h2 text-foreground">Sign in to your campus</h2>
                       <p className="mt-space-2 text-caption text-muted-foreground">
-                        Use your college Google account. Campusly is for verified students only.
+                        Use your college Google account. AnonymousU is for verified students only.
                       </p>
                     </div>
 

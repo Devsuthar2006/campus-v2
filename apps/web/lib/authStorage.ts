@@ -8,7 +8,7 @@ import type { AuthTokens } from '@campusly/shared-types';
  * SameSite cookie (with CSRF protection on the refresh endpoint) is the
  * hardening tracked in REVIEW_REPORT L-2 — a future improvement.
  */
-const REFRESH_KEY = 'campusly.refreshToken';
+const REFRESH_KEY = 'anonymousu.refreshToken';
 
 let accessToken: string | null = null;
 let expiresAtMs: number | null = null;

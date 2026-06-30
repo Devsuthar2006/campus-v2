@@ -2,7 +2,7 @@
   "name": "campusly",
   "version": "0.0.0",
   "private": true,
-  "description": "Campusly V2 — verified student social platform (monorepo)",
+  "description": "AnonymousU — verified student social platform (monorepo)",
   "engines": {
     "node": ">=20.0.0",
     "npm": ">=10.0.0"

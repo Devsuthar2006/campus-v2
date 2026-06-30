@@ -15,7 +15,7 @@ import { UnauthorizedError } from '../domain/errors.js';
  *   to the client once and never persisted in the clear.
  */
 
-const ISSUER = 'campusly';
+const ISSUER = 'anonymousu';
 
 export const tokenService = {
   signAccessToken(claims: AccessTokenClaims): string {

@@ -2,7 +2,7 @@
   "name": "@campusly/web",
   "version": "0.0.0",
   "private": true,
-  "description": "Campusly V2 frontend — Next.js App Router",
+  "description": "AnonymousU frontend — Next.js App Router",
   "type": "module",
   "scripts": {
     "dev": "next dev -p 3000",

@@ -50,7 +50,7 @@ export default function AdminPage() {
       <AppNav />
       <div className="flex flex-col gap-space-1">
         <h1 className="text-h1 text-foreground">Admin</h1>
-        <p className="text-body text-muted-foreground">Keep Campusly safe and well-run.</p>
+        <p className="text-body text-muted-foreground">Keep AnonymousU safe and well-run.</p>
       </div>
 
       <div className="flex flex-wrap gap-space-2">

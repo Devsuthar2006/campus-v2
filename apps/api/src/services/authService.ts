@@ -82,7 +82,7 @@ export const authService = {
           userAgent: ctx.userAgent,
         });
         throw new AuthenticationError(
-          'Your email is not from a recognized campus. Campusly is for verified students only.',
+          'Your email is not from a recognized campus. AnonymousU is for verified students only.',
         );
       }
       user = await userRepository.createWithGoogle({

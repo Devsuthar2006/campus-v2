@@ -14,7 +14,7 @@ const sora = Sora({
 });
 
 export const metadata: Metadata = {
-  title: 'Campusly',
+  title: 'AnonymousU',
   description: "India's digital campus — a verified, student-only social platform.",
 };
 

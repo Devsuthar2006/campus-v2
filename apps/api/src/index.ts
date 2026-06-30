@@ -35,7 +35,7 @@ async function main(): Promise<void> {
   adminService.startBanSweeper();
 
   httpServer.listen(config.PORT, () => {
-    logger.info({ port: config.PORT, env: config.NODE_ENV }, 'Campusly API listening');
+    logger.info({ port: config.PORT, env: config.NODE_ENV }, 'AnonymousU API listening');
   });
 
   const shutdown = async (signal: string): Promise<void> => {

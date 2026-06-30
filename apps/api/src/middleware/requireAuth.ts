@@ -18,7 +18,7 @@ export const requireAuth: RequestHandler = (req, _res, next) => {
 
   // Defense in depth: reject tokens carrying a blocked status (short TTL bounds staleness).
   if (BLOCKED_LOGIN_STATUSES.includes(claims.status)) {
-    throw new ForbiddenError('This account is not permitted to access Campusly.');
+    throw new ForbiddenError('This account is not permitted to access AnonymousU.');
   }
 
   req.auth = claims;

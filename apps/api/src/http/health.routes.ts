@@ -12,7 +12,7 @@ healthRouter.get('/health', async (_req, res) => {
   const database = await checkDatabase();
   sendData(res, {
     status: 'ok' as const,
-    service: 'campusly-api',
+    service: 'anonymousu-api',
     database: database ? 'connected' : 'unavailable',
     timestamp: new Date().toISOString(),
   });
