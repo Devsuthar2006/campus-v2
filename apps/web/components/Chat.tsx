@@ -127,7 +127,7 @@ export function Chat({
                 <li key={m.id} className={cn('flex', mine ? 'justify-end' : 'justify-start')}>
                   <span
                     className={cn(
-                      'max-w-[75%] rounded-card px-space-3 py-space-2 text-body',
+                      'max-w-[75%] rounded-card px-space-3 py-space-2 text-body break-words whitespace-pre-wrap',
                       mine
                         ? 'bg-brand text-brand-foreground'
                         : 'bg-surface text-foreground border border-border',
@@ -198,6 +198,7 @@ export function Chat({
           aria-label="Message"
           maxLength={4000}
           disabled={recording}
+          className="border-none focus-visible:ring-0 focus-visible:ring-offset-0 bg-muted/30"
         />
         <Button type="submit" disabled={!draft.trim() || busy}>
           Send

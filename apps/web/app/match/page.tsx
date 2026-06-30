@@ -103,8 +103,10 @@ export default function MatchPage() {
 
       <div
         className={cn(
-          'flex-1 overflow-hidden flex flex-col pb-24 md:pb-8',
-          state === 'in_session' ? 'px-0 md:px-space-8' : 'px-space-4 md:px-space-8',
+          'flex-1 overflow-hidden flex flex-col',
+          state === 'in_session'
+            ? 'px-0 pb-0 md:px-space-8 md:pb-8'
+            : 'px-space-4 pb-24 md:px-space-8 md:pb-8',
         )}
       >
         <div
@@ -173,9 +175,7 @@ export default function MatchPage() {
                                 Friend
                               </span>
                             </div>
-                          ) : (
-                            <span className="text-body font-medium text-foreground">Anonymous</span>
-                          )}
+                          ) : null}
                         </div>
 
                         {/* Action buttons */}
