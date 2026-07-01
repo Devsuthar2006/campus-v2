@@ -1,9 +1,9 @@
-import { MetadataRoute } from 'next'
+import { MetadataRoute } from 'next';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   // Use the production domain as the default fallback.
   // Add NEXT_PUBLIC_APP_URL to your .env file to override this for local dev or staging.
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.anonymousU.live'
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.anonymousu.live';
 
   return [
     {
@@ -24,7 +24,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'daily',
       priority: 0.8,
     },
-    // Note: Private routes like /settings, /profile, /admin, /onboarding 
+    // Note: Private routes like /settings, /profile, /admin, /onboarding
     // and /friends have been omitted as they generally shouldn't be indexed by search engines.
-  ]
+  ];
 }
