@@ -49,3 +49,17 @@
   background-color: #0b141a;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180' opacity='0.065'%3E%3Cpath d='M25 35h20a5 5 0 0 1 5 5v30a5 5 0 0 0-5-5H25V35z' fill='%23ffffff' opacity='0.3' /%3E%3Cpath d='M25 35h20a5 5 0 0 1 5 5v30a5 5 0 0 0-5-5H25V35z M45 35v30 M25 65h20 M25 45h15 M25 55h15' stroke='%23ffffff' stroke-width='1.2' stroke-linecap='round' stroke-linejoin='round' fill='none' /%3E%3Cpath d='M120 25l30 10-30 10-30-10z' fill='%23ffffff' opacity='0.3' /%3E%3Cpath d='M120 25l30 10-30 10-30-10z M105 39v12c0 4 6 8 15 8s15-4 15-8V39 M140 35v20' stroke='%23ffffff' stroke-width='1.2' stroke-linecap='round' stroke-linejoin='round' fill='none' /%3E%3Cpath d='M30 115h25l10 10v-10h10a15 15 0 0 0 15-15v-15a15 15 0 0 0-15-15H30a15 15 0 0 0-15 15v15a15 15 0 0 0 15 15z' fill='%23ffffff' opacity='0.25' /%3E%3Cpath d='M30 115h25l10 10v-10h10a15 15 0 0 0 15-15v-15a15 15 0 0 0-15-15H30a15 15 0 0 0-15 15v15a15 15 0 0 0 15 15z' stroke='%23ffffff' stroke-width='1.2' stroke-linecap='round' stroke-linejoin='round' fill='none' /%3E%3Cpath d='M85 70l20-20 5 5-20 20z' fill='%23ffffff' opacity='0.3' /%3E%3Cpath d='M85 70l20-20 5 5-20 20z M85 70l-3 7 7-3z M100 55l5 5' stroke='%23ffffff' stroke-width='1.2' stroke-linecap='round' stroke-linejoin='round' fill='none' /%3E%3Cpath d='M135 115h-20c-5 0-9 4-9 9v12c0 5 4 9 9 9h20c5 0 9-4 9-9v-12c0-5-4-9-9-9z' fill='%23ffffff' opacity='0.3' /%3E%3Cpath d='M135 115h-20c-5 0-9 4-9 9v12c0 5 4 9 9 9h20c5 0 9-4 9-9v-12c0-5-4-9-9-9z M144 122h4c3 0 5 2 5 5v2c0 3-2 5-5 5h-4' stroke='%23ffffff' stroke-width='1.2' stroke-linecap='round' stroke-linejoin='round' fill='none' /%3E%3Cpath d='M80 142c-5-5-12-5-17 0s-5 12 0 17l17 17 17-17c5-5 5-12 0-17s-12-5-17 0z' fill='%23ffffff' opacity='0.4' /%3E%3Cpath d='M80 142c-5-5-12-5-17 0s-5 12 0 17l17 17 17-17c5-5 5-12 0-17s-12-5-17 0z' stroke='%23ffffff' stroke-width='1.2' stroke-linecap='round' stroke-linejoin='round' fill='none' /%3E%3Cpath d='M80 25v6 M77 28h6 M35 85v4 M33 87h4 M150 75v4 M148 77h4 M95 120v4 M93 122h4 M115 80l2 2-2 2-2-2z' stroke='%23ffffff' stroke-width='1.2' stroke-linecap='round' stroke-linejoin='round' fill='none' /%3E%3C/svg%3E");
 }
+
+@keyframes typing-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+.animate-typing-dot {
+  animation: typing-bounce 1s infinite ease-in-out;
+}

@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 100 100" fill="none">
+  <defs>
+    <linearGradient id="uGrad" x1="50" y1="0" x2="50" y2="100" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stopColor="#FFC04D" />
+      <stop offset="40%" stopColor="#FF9900" />
+      <stop offset="100%" stopColor="#D97706" />
+    </linearGradient>
+  </defs>
+
+  {/* Thick solid U shape */}
+  <path
+    d="M14,8 L14,60 C14,82 30,96 50,96 C70,96 86,82 86,60 L86,8 L70,8 L70,60 C70,72 61,80 50,80 C39,80 30,72 30,60 L30,8 Z"
+    fill="url(#uGrad)"
+  />
+
+  {/* Head silhouette */}
+  <ellipse cx="50" cy="30" rx="11" ry="12" fill="url(#uGrad)" />
+
+  {/* Shoulders */}
+  <path
+    d="M30,60 C30,54 36,44 50,44 C64,44 70,54 70,60"
+    fill="url(#uGrad)"
+  />
+</svg>

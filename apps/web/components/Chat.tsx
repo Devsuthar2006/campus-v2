@@ -147,7 +147,24 @@ export function Chat({
             })}
           </ul>
         )}
-        {partnerTyping && <p className="mt-space-2 text-caption text-muted-foreground">typing…</p>}
+        {partnerTyping && (
+          <div className="flex justify-start mt-space-2">
+            <span className="bg-surface text-foreground border border-border rounded-card px-space-4 h-[38px] flex items-center justify-center gap-1">
+              <span
+                className="w-1.5 h-1.5 rounded-full bg-muted-foreground/75 animate-typing-dot"
+                style={{ animationDelay: '0ms' }}
+              />
+              <span
+                className="w-1.5 h-1.5 rounded-full bg-muted-foreground/75 animate-typing-dot"
+                style={{ animationDelay: '150ms' }}
+              />
+              <span
+                className="w-1.5 h-1.5 rounded-full bg-muted-foreground/75 animate-typing-dot"
+                style={{ animationDelay: '300ms' }}
+              />
+            </span>
+          </div>
+        )}
         <div ref={endRef} />
       </div>
 
