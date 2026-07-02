@@ -66,7 +66,7 @@ export async function ensureDirFor(absPath: string): Promise<void> {
 }
 
 export const localStorageProvider: StorageProvider = {
-  createUploadUrl(key: string, mimeType: string): SignedUpload {
+  async createUploadUrl(key: string, mimeType: string): Promise<SignedUpload> {
     const exp = Math.floor(Date.now() / 1000) + config.MEDIA_URL_TTL_SECONDS;
     const token = encodeToken({ key, op: 'put', mime: mimeType, exp });
     return {
@@ -76,7 +76,7 @@ export const localStorageProvider: StorageProvider = {
     };
   },
 
-  getDownloadUrl(key: string, mimeType: string): string {
+  async getDownloadUrl(key: string, mimeType: string): Promise<string> {
     const exp = Math.floor(Date.now() / 1000) + config.MEDIA_URL_TTL_SECONDS;
     const token = encodeToken({ key, op: 'get', mime: mimeType, exp });
     return `${config.MEDIA_PUBLIC_BASE_URL}/media/local/${token}`;

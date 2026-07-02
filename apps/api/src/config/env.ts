@@ -42,10 +42,13 @@ const EnvSchema = z.object({
     .transform((v) => v === 'true'),
 
   // Media (MEDIA_SYSTEM.md, ARCHITECTURE.md §9). Bytes live in object storage;
-  // only references live in PostgreSQL. The 'local' driver is a dev stand-in for
-  // Oracle Object Storage that stores bytes on disk and serves them via signed,
-  // short-lived URLs (production uses an S3-compatible OCI driver).
-  MEDIA_DRIVER: z.enum(['local', 's3']).default('local'),
+  // only references live in PostgreSQL. Supported drivers:
+  //   - 'local': dev stand-in that stores bytes on disk and serves them via
+  //     signed, short-lived URLs (default; requires no cloud configuration).
+  //   - 'gcs':   production driver backed by Google Cloud Storage, authenticated
+  //     via Application Default Credentials (GCE VM service account). Config is
+  //     prepared here; the provider itself is implemented in a follow-up task.
+  MEDIA_DRIVER: z.enum(['local', 'gcs']).default('local'),
   /** Secret used to sign local upload/download URLs (dev driver only). */
   MEDIA_SIGNING_SECRET: z.string().min(16).default('dev-only-media-signing-secret-change'),
   /** On-disk directory for the local media driver. */
@@ -56,6 +59,23 @@ const EnvSchema = z.object({
   MEDIA_URL_TTL_SECONDS: z.coerce.number().int().positive().default(600),
   /** Temporary-media retention before expiry/cleanup, in hours (~48h). */
   MEDIA_TEMP_TTL_HOURS: z.coerce.number().int().positive().default(48),
+
+  // Google Cloud Storage (MEDIA_DRIVER=gcs). Bytes live in a GCS bucket; the
+  // client uploads/downloads directly via V4 signed URLs (bytes never transit
+  // the API — MEDIA_SYSTEM.md §3). Authentication uses Application Default
+  // Credentials (ADC): in production the GCE VM's attached service account,
+  // with no key file required. Locally, developers off-GCP may point
+  // GOOGLE_APPLICATION_CREDENTIALS at a service-account JSON (ADC picks it up
+  // automatically — it is intentionally not read here). These values are
+  // optional at the schema level so 'local' dev never needs them; the GCS
+  // provider validates their presence at init when MEDIA_DRIVER=gcs.
+  /** Target GCS bucket name for media objects (no 'gs://' prefix, no URL). */
+  GCS_BUCKET: z.string().min(1).optional(),
+  /**
+   * GCP project ID. Optional: ADC usually resolves it from the environment
+   * (GCE metadata server / credentials); set it to pin an explicit project.
+   */
+  GCS_PROJECT_ID: z.string().min(1).optional(),
 });
 
 function loadConfig() {

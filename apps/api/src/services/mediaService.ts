@@ -78,7 +78,7 @@ class MediaService {
       isTemporary,
     });
 
-    const upload = storage.createUploadUrl(storageKey, input.mimeType);
+    const upload = await storage.createUploadUrl(storageKey, input.mimeType);
     return { media: toRef(media), upload };
   }
 
@@ -105,7 +105,7 @@ class MediaService {
     if (!(await this.canAccess(claims, media))) {
       throw new ForbiddenError('You do not have access to this media.');
     }
-    const url = storage.getDownloadUrl(media.storageKey, media.mimeType);
+    const url = await storage.getDownloadUrl(media.storageKey, media.mimeType);
     return {
       url,
       expiresAt: new Date(Date.now() + config.MEDIA_URL_TTL_SECONDS * 1000).toISOString(),
