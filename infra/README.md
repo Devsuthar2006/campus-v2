@@ -20,7 +20,18 @@ point of failure is an accepted, documented trade-off for the validation phase
 
 ## Deploy outline (Phase 15 expands this)
 
+Deployments are deterministic: **deploy artifacts → run migrations → start service**.
+The application never auto-migrates at boot; migrations are an explicit pre-start step.
+
 1. Build: `npm ci && npm run build`
-2. Run DB migrations: `npm run db:migrate --workspace @campusly/api`
+2. Run DB migrations: `npm run db:migrate:deploy --workspace @campusly/api`
+   - Runs the compiled standalone runner (`dist/db/migrate.js`) using only
+     production dependencies, so it works under a pruned `npm ci --omit=dev`
+     install. (`db:migrate` uses the `drizzle-kit` dev CLI — for local
+     generate/apply only, not production.)
 3. Start/reload: `pm2 startOrReload infra/pm2/ecosystem.config.cjs`
 4. Nginx: symlink `nginx/campusly.conf` into `sites-enabled`, `nginx -t`, reload.
+
+> Run step 2 to completion before step 3. A non-zero exit from
+> `db:migrate:deploy` must abort the deploy — do not start the service against a
+> partially-migrated schema.

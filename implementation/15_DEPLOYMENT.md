@@ -16,6 +16,7 @@ Harden and operationalize the production deployment on Oracle Cloud ARM: Nginx +
 - **Phases:** 00–14 (a tested, complete application).
 
 ## Backend Tasks
+- Run database migrations as an explicit pre-start deploy step (`npm run db:migrate:deploy` — the production runner in `apps/api/src/db/migrate.ts`, built on production deps so it survives `npm ci --omit=dev`); the app never auto-migrates at boot. Sequence: **deploy artifacts → migrate → start service** (`INFRASTRUCTURE.md` §12.1, `infra/README.md`).
 - Finalize production process management (PM2 cluster across ARM cores), graceful restart/zero-downtime reload (`ARCHITECTURE.md` §13.1).
 - Implement/verify monitoring (process, resource, app metrics, uptime) and alerting on meaningful conditions (`ARCHITECTURE.md` §13.7–13.8).
 - Implement daily PostgreSQL backups, periodic offsite exports, and WAL archiving for PITR; schedule a periodic test restore (`DATABASE_SCHEMA.md` §24).

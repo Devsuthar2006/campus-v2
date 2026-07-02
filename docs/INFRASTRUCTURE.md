@@ -168,6 +168,28 @@ The inviolable rule (`TECH_STACK.md` §8, `DATABASE_SCHEMA.md` §20): **bytes li
 - **Backups.** Nightly logical backups stream to the backups bucket (§11). Bytes in object storage are independently durable and versioned, so media is not part of the DB backup payload.
 - **Logs.** Application and Nginx logs are captured by OCI Logging and/or rotated to the logs bucket; retention is bounded to control cost and respect privacy (`DATABASE_SCHEMA.md` §23 retention philosophy).
 
+### 6.1 Google Cloud Storage — IAM for V4 signed URLs
+
+The `gcs` media driver (`MEDIA_DRIVER=gcs`, `apps/api/src/storage/gcsProvider.ts`) runs on a **Google Compute Engine** VM and authenticates via **Application Default Credentials (ADC)** using the VM's **attached service account** — no key file is mounted. This makes signed-URL generation an IAM concern, because of *how* the `@google-cloud/storage` SDK signs V4 URLs under keyless ADC.
+
+- **Why `roles/iam.serviceAccountTokenCreator` is required (GCE + keyless ADC).** V4 signing needs a cryptographic signature over the URL's canonical request. With a private key present the SDK signs **in-process**; under ADC on GCE there is **no private key on the VM** — the attached service account's credentials come from the instance metadata server. So the SDK (via `google-auth-library`'s `GoogleAuth.sign()`) instead calls the **IAM Credentials `signBlob` API** (`iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/{email}:signBlob`) to produce the signature. That call requires the **`iam.serviceAccounts.signBlob`** permission, which is granted by **`roles/iam.serviceAccountTokenCreator`**. Without it, upload/download URL generation fails with a permission error.
+- **Why it is NOT required with a local key file.** In local development a developer may set `GOOGLE_APPLICATION_CREDENTIALS` to a service-account JSON key (optional — `env.ts`). That JSON contains a private key, so ADC resolves to a keyed (JWT) client and the SDK **signs locally** with no network call to IAM. The `signBlob` permission (and hence the token-creator role) is therefore **not** needed on the key-file path.
+- **Self-impersonation for the attached SA.** Under keyless ADC the service account signs *as itself*, so the attached VM service account must hold `roles/iam.serviceAccountTokenCreator` **on itself** (it is both the grantee and the resource principal). Grant it on the service account (self-membership), typically in the project that owns the SA.
+- **Enable the IAM Credentials API.** The `signBlob` call targets `iamcredentials.googleapis.com`; this API must be **enabled** on the project, or signing fails regardless of role bindings.
+
+**Minimum IAM permissions** for the attached VM service account (least privilege), scoped to the media bucket for object permissions and to the SA itself for signing:
+
+| Operation | SDK behavior | Minimum permissions |
+|-----------|--------------|---------------------|
+| **Generate signed upload URL** | `getSignedUrl({action:'write'})` → IAM `signBlob` | `iam.serviceAccounts.signBlob` **+** `storage.objects.create` |
+| **Generate signed download URL** | `getSignedUrl({action:'read'})` → IAM `signBlob` | `iam.serviceAccounts.signBlob` **+** `storage.objects.get` |
+| **Delete object** | `file.delete()` — direct authenticated JSON-API call | `storage.objects.delete` **only** |
+
+- **Deletion does NOT require `signBlob`.** `deleteObject` is a normal authenticated API call using the ADC access token — it signs no URL and never touches the IAM signer. It needs only the object-level `storage.objects.delete` permission, not the token-creator role.
+- **Practical role bindings.** Grant the attached service account **`roles/iam.serviceAccountTokenCreator` on itself** (for signing) plus **`roles/storage.objectAdmin`** (or `roles/storage.objectUser`) **scoped to the media bucket** — either single role covers create + get + delete. (`roles/storage.objectCreator` = create-only and `roles/storage.objectViewer` = get-only grant no delete, so neither alone suffices for this service.)
+
+> **Note.** This §6.1 documents the Google Cloud Storage deployment decision (GCE + ADC) adopted for the media subsystem. The surrounding infrastructure blueprint still describes Oracle Cloud as the primary target; that broader Oracle→GCP reconciliation is tracked separately and is out of scope for this note.
+
 ---
 
 ## 7. Database Infrastructure
@@ -276,6 +298,21 @@ flowchart LR
 ```
 
 `GitHub → CI → Terraform → Oracle Cloud → Health Checks → Production`. CI enforces the same gates used throughout development (typecheck, lint, build, tests). Infrastructure changes go through `terraform plan` review before `apply`. Application releases build artifacts, run forward-only migrations, and reload the Node process with zero/minimal downtime; a failed post-deploy health check halts the rollout. Pushing to `main` is the trigger; nothing is deployed by hand.
+
+### 12.1 Deterministic migration step
+
+The application **never runs migrations at boot** — startup has no schema side effects. Each release applies migrations as an **explicit, ordered step before the service starts**, so a deploy either migrates-then-starts cleanly or aborts without a running service on a half-migrated schema:
+
+```text
+Deploy artifacts   (npm ci && npm run build)
+        ↓
+Run DB migrations  (npm run db:migrate:deploy --workspace @campusly/api)
+        ↓
+Start backend      (pm2 startOrReload infra/pm2/ecosystem.config.cjs)
+```
+
+- **Production runner.** `db:migrate:deploy` runs a standalone runner (`apps/api/src/db/migrate.ts` → compiled `dist/db/migrate.js`) built on `drizzle-orm` + `postgres` — **production** dependencies — so it works under a pruned `npm ci --omit=dev` install. The `drizzle-kit`-based `db:migrate` remains a **dev-only** tool for generating/applying migrations locally and is not required on the VM.
+- **Ordering is mandatory.** A non-zero exit from the migration step must abort the release; the service is not (re)started until migrations succeed. Forward-only migrations (`DATABASE_SCHEMA.md` §26.7) keep this safe with the still-running previous process during a rolling reload.
 
 ---
 

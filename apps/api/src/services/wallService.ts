@@ -420,6 +420,13 @@ export function startTrendingJob(): void {
   trendingTimer.unref?.();
 }
 
+/** Stop the trending materialization job (graceful shutdown). Idempotent. */
+export function stopTrendingJob(): void {
+  if (!trendingTimer) return;
+  clearInterval(trendingTimer);
+  trendingTimer = null;
+}
+
 /** Documented default categories (PUBLIC_WALL.md §4), seeded as global rows. */
 export const DEFAULT_WALL_CATEGORIES = [
   { name: 'Academics', slug: 'academics' },

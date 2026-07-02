@@ -404,6 +404,13 @@ class AdminService {
     );
     this.sweeper.unref?.();
   }
+
+  /** Stop the ban sweeper (graceful shutdown). Idempotent. */
+  stopBanSweeper(): void {
+    if (!this.sweeper) return;
+    clearInterval(this.sweeper);
+    this.sweeper = null;
+  }
 }
 
 export const adminService = new AdminService();

@@ -37,6 +37,13 @@ class MatchingService {
     }
   }
 
+  /** Stop the stale-entry sweeper (graceful shutdown). Idempotent. */
+  stopSweeper(): void {
+    if (!this.sweeper) return;
+    clearInterval(this.sweeper);
+    this.sweeper = null;
+  }
+
   private emit(userId: string, event: string, payload: unknown): void {
     this.io?.to(`user:${userId}`).emit(event, payload);
   }

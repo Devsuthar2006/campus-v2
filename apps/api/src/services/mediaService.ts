@@ -173,6 +173,13 @@ class MediaService {
     this.sweeper.unref?.();
   }
 
+  /** Stop the cleanup sweeper (graceful shutdown). Idempotent. */
+  stopCleanup(): void {
+    if (!this.sweeper) return;
+    clearInterval(this.sweeper);
+    this.sweeper = null;
+  }
+
   /** One cleanup pass: expire+delete temporary media past deadline; reclaim orphans. */
   async runCleanup(now = new Date()): Promise<{ expired: number; orphans: number }> {
     const expired = await mediaRepository.findExpired(now);
