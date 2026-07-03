@@ -13,6 +13,8 @@ export interface VerifiedGoogleProfile {
   googleSub: string;
   email: string;
   emailVerified: boolean;
+  /** Google Workspace hosted-domain claim, when present (institutional accounts). */
+  hd: string | null;
   name: string;
   pictureUrl: string | null;
 }
@@ -38,6 +40,7 @@ export const googleAuthService = {
       googleSub: payload.sub,
       email: payload.email,
       emailVerified: payload.email_verified === true,
+      hd: payload.hd ?? null,
       name: payload.name ?? payload.email.split('@')[0] ?? 'Student',
       pictureUrl: payload.picture ?? null,
     };

@@ -1,5 +1,6 @@
 import { BLOCKED_LOGIN_STATUSES, type AuthResponse, type AuthUser } from '@campusly/shared-types';
 import { config } from '../config/env.js';
+import { logger } from '../config/logger.js';
 import { sha256 } from '../lib/crypto.js';
 import { AuthenticationError, ForbiddenError, NotFoundError } from '../domain/errors.js';
 import type { UserRow } from '../db/schema.js';
@@ -32,6 +33,13 @@ export function toAuthUser(user: UserRow): AuthUser {
 
 function emailDomain(email: string): string {
   return email.split('@')[1]?.toLowerCase() ?? '';
+}
+
+/** Masks the local part for logs so we never write full email PII. */
+function maskEmail(email: string): string {
+  const [local, domain] = email.split('@');
+  if (!local || !domain) return '***';
+  return `${local.slice(0, 1)}***@${domain}`;
 }
 
 function assertCanAuthenticate(user: UserRow): void {
@@ -70,17 +78,34 @@ export const authService = {
 
     if (!user) {
       // New user — enforce institutional-domain eligibility (AUTH_SYSTEM.md §3).
-      let university = await universityRepository.findByEmailDomain(emailDomain(profile.email));
+      const domain = emailDomain(profile.email);
+      let university = await universityRepository.findByEmailDomain(domain);
       if (!university && config.AUTH_ALLOW_ANY_DOMAIN) {
         // DEV-ONLY open sign-in: attach to the fallback campus.
         university = await universityRepository.getOrCreateOpenCampus();
       }
+      // Diagnostic (no full-email PII): why a new account was accepted/rejected.
+      logger.info(
+        {
+          email: maskEmail(profile.email),
+          emailDomain: domain,
+          hd: profile.hd,
+          lookupInput: domain,
+          matched: Boolean(university),
+          matchedUniversityId: university?.id ?? null,
+        },
+        'Google sign-in campus eligibility check',
+      );
       if (!university) {
         await loginHistoryRepository.record({
           event: 'login_failure',
           ipHash,
           userAgent: ctx.userAgent,
         });
+        logger.warn(
+          { emailDomain: domain, hd: profile.hd, reason: 'no_recognized_campus' },
+          'Google sign-in rejected: email domain not mapped to a recognized campus',
+        );
         throw new AuthenticationError(
           'Your email is not from a recognized campus. AnonymousU is for verified students only.',
         );
