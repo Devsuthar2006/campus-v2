@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MESSAGE_CONTEXTS } from './messaging';
+import { MESSAGE_CONTEXTS } from './messaging.js';
 
 /**
  * Media system contracts (MEDIA_SYSTEM.md, DATABASE_SCHEMA.md §8.6, §20,

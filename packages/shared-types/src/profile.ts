@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { AccountStatus, SubscriptionStatus, UserRole } from './auth';
+import type { AccountStatus, SubscriptionStatus, UserRole } from './auth.js';
 
 /**
  * Profile & privacy contracts (DATABASE_SCHEMA.md §6, AUTH_SYSTEM.md §9).

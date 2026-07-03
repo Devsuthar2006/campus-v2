@@ -22,7 +22,7 @@ export const MATCH_SERVER_EVENTS = {
 } as const;
 
 /** Matching lifecycle state as seen by a client (for status reconciliation). */
-import type { PublicUserSummary } from './friends';
+import type { PublicUserSummary } from './friends.js';
 export type MatchState = 'idle' | 'waiting' | 'in_session';
 
 export interface QueueStatusPayload {

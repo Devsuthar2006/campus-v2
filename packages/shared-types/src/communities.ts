@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { ReactionType } from './wall';
+import type { ReactionType } from './wall.js';
 
 /**
  * Communities & Clubs contracts (DATABASE_SCHEMA.md §11, API_SPEC.md §9,

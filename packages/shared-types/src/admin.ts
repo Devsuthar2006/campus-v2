@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import type { UserRole, AccountStatus, SubscriptionStatus } from './auth';
-import { REPORT_TARGETS } from './wall';
+import type { UserRole, AccountStatus, SubscriptionStatus } from './auth.js';
+import { REPORT_TARGETS } from './wall.js';
 
 /**
  * Admin & Moderation contracts (ADMIN_PANEL.md, DATABASE_SCHEMA.md §15, §19,

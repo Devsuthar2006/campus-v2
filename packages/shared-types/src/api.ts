@@ -1,4 +1,4 @@
-import type { ErrorCode } from './errors';
+import type { ErrorCode } from './errors.js';
 
 /**
  * The standard API response envelope (API_SPEC.md §2.3).
