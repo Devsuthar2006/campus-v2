@@ -308,11 +308,14 @@ Deploy artifacts   (npm ci && npm run build)
         ↓
 Run DB migrations  (npm run db:migrate:deploy --workspace @campusly/api)
         ↓
+Seed reference data (npm run db:seed:deploy --workspace @campusly/api)
+        ↓
 Start backend      (pm2 startOrReload infra/pm2/ecosystem.config.cjs)
 ```
 
 - **Production runner.** `db:migrate:deploy` runs a standalone runner (`apps/api/src/db/migrate.ts` → compiled `dist/db/migrate.js`) built on `drizzle-orm` + `postgres` — **production** dependencies — so it works under a pruned `npm ci --omit=dev` install. The `drizzle-kit`-based `db:migrate` remains a **dev-only** tool for generating/applying migrations locally and is not required on the VM.
-- **Ordering is mandatory.** A non-zero exit from the migration step must abort the release; the service is not (re)started until migrations succeed. Forward-only migrations (`DATABASE_SCHEMA.md` §26.7) keep this safe with the still-running previous process during a rolling reload.
+- **Seed step.** `db:seed:deploy` runs the standalone seed runner (`apps/api/src/db/seed.ts` → compiled `dist/db/seed.js`, production deps only) to populate the `universities` table (recognized campuses) from `apps/api/src/db/seeds/`. This table is the **Google sign-in eligibility gate**: an unseeded/empty table rejects every login with "not from a recognized campus", so seeding is a required post-migration step. The seed is idempotent (upsert by unique campus name) and safe to re-run on every deploy.
+- **Ordering is mandatory.** A non-zero exit from the migration or seed step must abort the release; the service is not (re)started until both succeed. Forward-only migrations (`DATABASE_SCHEMA.md` §26.7) keep this safe with the still-running previous process during a rolling reload.
 
 ---
 
