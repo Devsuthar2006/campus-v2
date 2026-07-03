@@ -12,7 +12,8 @@ interface HealthResponse {
 export function useHealth() {
   return useQuery({
     queryKey: ['health'],
-    queryFn: () => apiFetch<HealthResponse>('/health'),
+    // /health is public — poll it without attaching or requiring a user token.
+    queryFn: () => apiFetch<HealthResponse>('/health', { skipAuth: true }),
     refetchInterval: 15_000,
   });
 }
