@@ -120,6 +120,14 @@ export function useFriends() {
     [refreshBlocked],
   );
 
+  const sendRequest = useCallback(
+    async (receiverId: string) => {
+      await friendsApi.sendRequest({ origin: 'profile', receiverId });
+      refreshOutgoing();
+    },
+    [refreshOutgoing],
+  );
+
   // Ensure a connection exists even if no live event has fired yet.
   useEffect(() => {
     getSocket();
@@ -136,6 +144,7 @@ export function useFriends() {
     removeFriend,
     block,
     unblock,
+    sendRequest,
     refreshAll,
   };
 }

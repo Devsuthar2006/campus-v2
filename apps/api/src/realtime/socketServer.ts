@@ -59,8 +59,9 @@ export function createSocketServer(httpServer: HttpServer): SocketIOServer {
     logger.info({ socketId: socket.id, userId }, 'Socket authenticated and connected');
 
     // --- Anonymous matching events (SOCKET_EVENTS.md §4) ---
-    socket.on(MATCH_CLIENT_EVENTS.JOIN_QUEUE, () => {
-      void matchingService.joinQueue(userId, universityId).catch((err) => {
+    socket.on(MATCH_CLIENT_EVENTS.JOIN_QUEUE, (payload?: { genderPreference?: string }) => {
+      const pref = payload?.genderPreference ?? 'all';
+      void matchingService.joinQueue(userId, universityId, pref).catch((err) => {
         logger.error({ err, userId }, 'join_queue failed');
       });
     });

@@ -449,6 +449,25 @@ export const wallRepository = {
     return map;
   },
 
+  async listPostsByAuthor(
+    authorId: string,
+    cursor?: string,
+    limit: number = 20,
+  ): Promise<WallPostRow[]> {
+    const conditions = [
+      eq(wallPosts.authorId, authorId),
+      eq(wallPosts.status, 'visible'),
+      isNull(wallPosts.deletedAt),
+    ];
+    if (cursor) conditions.push(lt(wallPosts.createdAt, new Date(cursor)));
+    return db
+      .select()
+      .from(wallPosts)
+      .where(and(...conditions))
+      .orderBy(desc(wallPosts.createdAt))
+      .limit(limit);
+  },
+
   // --- Trending materialization (background job, §10.8) ---
   async recomputeTrending(): Promise<number> {
     // Time-decayed score from engagement + recency, recent visible posts only.

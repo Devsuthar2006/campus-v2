@@ -12,6 +12,7 @@ import type { PrivacySettingsRow, UserRow, ProfileRow } from '../db/schema.js';
 import { userRepository } from '../repositories/userRepository.js';
 import { profileRepository } from '../repositories/profileRepository.js';
 import { mediaRepository } from '../repositories/mediaRepository.js';
+import { hashPassword } from '../lib/crypto.js';
 
 function toPrivacy(row: PrivacySettingsRow): PrivacySettings {
   return {
@@ -110,6 +111,20 @@ export const profileService = {
     });
     if (input.interests) await profileRepository.replaceInterests(userId, input.interests);
 
+    // Set credentials (username + password) if provided during onboarding.
+    if (input.username && input.password) {
+      // Validate username is unique before saving.
+      const existing = await userRepository.findByUsername(input.username);
+      if (existing && existing.id !== userId) {
+        throw new ConflictError('This username is already taken.');
+      }
+      const hashed = await hashPassword(input.password);
+      await userRepository.setCredentials(userId, {
+        username: input.username.toLowerCase(),
+        passwordHash: hashed,
+      });
+    }
+
     // Final step: the account becomes active and unlocks the product.
     await userRepository.updateStatus(userId, 'active');
     return this.getMyProfile(userId);
@@ -147,6 +162,7 @@ export const profileService = {
     return {
       userId: target.id,
       name: target.name,
+      username: target.username ?? null,
       universityId: target.universityId,
       branchId: target.branchId,
       year: target.year,
@@ -163,19 +179,29 @@ export const profileService = {
     if (!viewer) throw new NotFoundError('Account not found.');
     if (query.trim().length < 2) return [];
     const matches = await userRepository.searchByName(viewer.universityId, query);
-    return matches
-      .filter((u) => u.id !== viewerId)
-      .map((u) => ({
-        userId: u.id,
-        name: u.name,
-        universityId: u.universityId,
-        branchId: u.branchId,
-        year: u.year,
-        gender: null,
-        bio: null,
-        avatarMediaId: null,
-        interests: [],
-      }));
+    const userIds = matches.filter((u) => u.id !== viewerId).map((u) => u.id);
+    if (userIds.length === 0) return [];
+
+    const summaries = await userRepository.getPublicSummaries(userIds);
+    const list: PublicProfile[] = [];
+    for (const id of userIds) {
+      const s = summaries.get(id);
+      if (s) {
+        list.push({
+          userId: s.id,
+          name: s.name,
+          username: s.username,
+          universityId: s.universityId,
+          branchId: null,
+          year: s.year,
+          gender: null,
+          bio: null,
+          avatarMediaId: s.avatarMediaId,
+          interests: [],
+        });
+      }
+    }
+    return list;
   },
 };
 

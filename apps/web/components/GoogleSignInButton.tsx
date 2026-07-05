@@ -97,9 +97,6 @@ export function GoogleSignInButton({
 
       renderResponsiveButton();
 
-      // Trigger Google One Tap prompt on the same page
-      window.google.accounts.id.prompt();
-
       resizeObserver = new ResizeObserver(() => {
         renderResponsiveButton();
       });

@@ -286,6 +286,19 @@ export const wallService = {
     });
   },
 
+  async listUserPosts(
+    claims: AccessTokenClaims,
+    authorId: string,
+    cursor?: string,
+    limit: number = 20,
+  ): Promise<{ posts: WallPost[]; nextCursor: string | null }> {
+    const rows = await wallRepository.listPostsByAuthor(authorId, cursor, limit);
+    const posts = await this.assemblePosts(claims.sub, rows);
+    const nextCursor =
+      rows.length === limit ? (rows[rows.length - 1]?.createdAt.toISOString() ?? null) : null;
+    return { posts, nextCursor };
+  },
+
   // --- internal ---
 
   async requireVisiblePost(postId: string, universityId: string): Promise<WallPostRow> {

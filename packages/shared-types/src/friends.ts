@@ -16,6 +16,7 @@ export type FriendRequestStatus = (typeof FRIEND_REQUEST_STATUSES)[number];
 export interface PublicUserSummary {
   id: string;
   name: string;
+  username: string | null;
   universityId: string;
   year: number | null;
   avatarMediaId: string | null;

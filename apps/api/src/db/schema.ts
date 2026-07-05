@@ -136,6 +136,10 @@ export const users = pgTable(
     /** Verified institutional email, stored normalized lowercase; unique. */
     email: text('email').notNull(),
     name: text('name').notNull(),
+    /** Instagram-style unique username; null for legacy Google-only users. */
+    username: text('username'),
+    /** Scrypt hash of the user's password; null for Google-only users. */
+    passwordHash: text('password_hash'),
     year: smallint('year'),
     role: userRoleEnum('role').notNull().default('student'),
     accountStatus: accountStatusEnum('account_status').notNull().default('pending_verification'),
@@ -147,6 +151,7 @@ export const users = pgTable(
   },
   (t) => ({
     emailUnique: unique('uq_users_email').on(t.email),
+    usernameUnique: unique('uq_users_username').on(t.username),
     universityIdx: index('idx_users_university').on(t.universityId),
   }),
 );

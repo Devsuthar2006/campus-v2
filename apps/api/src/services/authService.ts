@@ -1,7 +1,7 @@
 import { BLOCKED_LOGIN_STATUSES, type AuthResponse, type AuthUser } from '@campusly/shared-types';
 import { config } from '../config/env.js';
 import { logger } from '../config/logger.js';
-import { sha256 } from '../lib/crypto.js';
+import { sha256, verifyPassword } from '../lib/crypto.js';
 import { AuthenticationError, ForbiddenError, NotFoundError } from '../domain/errors.js';
 import type { UserRow } from '../db/schema.js';
 import { userRepository } from '../repositories/userRepository.js';
@@ -23,6 +23,7 @@ export function toAuthUser(user: UserRow): AuthUser {
     id: user.id,
     email: user.email,
     name: user.name,
+    username: user.username ?? null,
     universityId: user.universityId,
     role: user.role,
     accountStatus: user.accountStatus,
@@ -167,6 +168,50 @@ export const authService = {
   async logout(rawToken: string | undefined, userId: string | undefined): Promise<void> {
     if (rawToken) await tokenService.revokeRefreshToken(rawToken);
     if (userId) await loginHistoryRepository.record({ userId, event: 'logout' });
+  },
+
+  /**
+   * Email + password sign-in. The user must have set credentials during
+   * onboarding; legacy Google-only users cannot use this path.
+   */
+  async loginWithEmail(email: string, password: string, ctx: AuthContext): Promise<AuthResponse> {
+    const ipHash = ctx.ip ? sha256(ctx.ip) : null;
+    const user = await userRepository.findByEmail(email.toLowerCase());
+
+    if (!user || !user.passwordHash) {
+      await loginHistoryRepository.record({
+        event: 'login_failure',
+        ipHash,
+        userAgent: ctx.userAgent,
+      });
+      throw new AuthenticationError('Invalid email or password.');
+    }
+
+    const valid = await verifyPassword(password, user.passwordHash);
+    if (!valid) {
+      await loginHistoryRepository.record({
+        userId: user.id,
+        event: 'login_failure',
+        ipHash,
+        userAgent: ctx.userAgent,
+      });
+      throw new AuthenticationError('Invalid email or password.');
+    }
+
+    assertCanAuthenticate(user);
+    await loginHistoryRepository.record({
+      userId: user.id,
+      event: 'login_success',
+      ipHash,
+      userAgent: ctx.userAgent,
+    });
+    return issueSession(user);
+  },
+
+  /** Check if a username is available (for real-time feedback during onboarding). */
+  async checkUsernameAvailability(username: string): Promise<{ available: boolean }> {
+    const existing = await userRepository.findByUsername(username.toLowerCase());
+    return { available: !existing };
   },
 
   /** Current authenticated user (GET /auth/me). */

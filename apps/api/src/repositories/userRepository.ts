@@ -1,4 +1,4 @@
-import { and, eq, ilike, inArray, isNull } from 'drizzle-orm';
+import { and, eq, ilike, inArray, isNull, or } from 'drizzle-orm';
 import type { AccountStatus } from '@campusly/shared-types';
 import { db } from '../db/client.js';
 import {
@@ -32,6 +32,15 @@ export const userRepository = {
 
   async findByEmail(email: string): Promise<UserRow | null> {
     const rows = await db.select().from(users).where(eq(users.email, email.toLowerCase())).limit(1);
+    return rows[0] ?? null;
+  },
+
+  async findByUsername(username: string): Promise<UserRow | null> {
+    const rows = await db
+      .select()
+      .from(users)
+      .where(eq(users.username, username.toLowerCase()))
+      .limit(1);
     return rows[0] ?? null;
   },
 
@@ -82,6 +91,21 @@ export const userRepository = {
       .where(eq(users.id, id));
   },
 
+  /** Sets the username and password hash (onboarding credential setup). */
+  async setCredentials(
+    id: string,
+    credentials: { username: string; passwordHash: string },
+  ): Promise<void> {
+    await db
+      .update(users)
+      .set({
+        username: credentials.username.toLowerCase(),
+        passwordHash: credentials.passwordHash,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, id));
+  },
+
   /** Campus-scoped name search of active students (GET /users/search). */
   async searchByName(universityId: string, query: string, limit = 20): Promise<UserRow[]> {
     const term = `%${query.trim().toLowerCase()}%`;
@@ -93,7 +117,7 @@ export const userRepository = {
           eq(users.universityId, universityId),
           eq(users.accountStatus, 'active'),
           isNull(users.deletedAt),
-          ilike(users.name, term),
+          or(ilike(users.name, term), ilike(users.username, term)),
         ),
       )
       .limit(limit);
@@ -111,14 +135,13 @@ export const userRepository = {
    * Minimal public identity for a set of users (FRIEND_SYSTEM.md §4 — revealed
    * only on consensual friendship). Joins the profile for the avatar reference.
    */
-  async getPublicSummaries(
-    ids: string[],
-  ): Promise<
+  async getPublicSummaries(ids: string[]): Promise<
     Map<
       string,
       {
         id: string;
         name: string;
+        username: string | null;
         universityId: string;
         year: number | null;
         avatarMediaId: string | null;
@@ -130,6 +153,7 @@ export const userRepository = {
       {
         id: string;
         name: string;
+        username: string | null;
         universityId: string;
         year: number | null;
         avatarMediaId: string | null;
@@ -140,6 +164,7 @@ export const userRepository = {
       .select({
         id: users.id,
         name: users.name,
+        username: users.username,
         universityId: users.universityId,
         year: users.year,
         avatarMediaId: profiles.avatarMediaId,
@@ -151,6 +176,7 @@ export const userRepository = {
       map.set(r.id, {
         id: r.id,
         name: r.name,
+        username: r.username ?? null,
         universityId: r.universityId,
         year: r.year,
         avatarMediaId: r.avatarMediaId ?? null,

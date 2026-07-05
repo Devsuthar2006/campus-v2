@@ -42,6 +42,8 @@ export interface AuthUser {
   id: string;
   email: string;
   name: string;
+  /** Instagram-style unique username; null for legacy Google-only users. */
+  username: string | null;
   universityId: string;
   role: UserRole;
   accountStatus: AccountStatus;
@@ -69,6 +71,34 @@ export const RefreshSchema = z.object({
   refreshToken: z.string().min(1).optional(),
 });
 export type RefreshInput = z.infer<typeof RefreshSchema>;
+
+/** POST /auth/email — sign in with email + password. */
+export const EmailLoginSchema = z.object({
+  email: z.string().email('A valid email is required.'),
+  password: z.string().min(1, 'Password is required.'),
+});
+export type EmailLoginInput = z.infer<typeof EmailLoginSchema>;
+
+/** POST /auth/check-username — real-time availability check. */
+export const CheckUsernameSchema = z.object({
+  username: z
+    .string()
+    .min(3, 'Username must be at least 3 characters.')
+    .max(30, 'Username must be at most 30 characters.')
+    .regex(/^[a-z0-9_]+$/, 'Only lowercase letters, numbers, and underscores.'),
+});
+export type CheckUsernameInput = z.infer<typeof CheckUsernameSchema>;
+
+/** Onboarding credential setup (username + password). */
+export const SetCredentialsSchema = z.object({
+  username: z
+    .string()
+    .min(3, 'Username must be at least 3 characters.')
+    .max(30, 'Username must be at most 30 characters.')
+    .regex(/^[a-z0-9_]+$/, 'Only lowercase letters, numbers, and underscores.'),
+  password: z.string().min(8, 'Password must be at least 8 characters.').max(128),
+});
+export type SetCredentialsInput = z.infer<typeof SetCredentialsSchema>;
 
 /** Successful auth response (tokens + the authenticated user). */
 export interface AuthTokens {

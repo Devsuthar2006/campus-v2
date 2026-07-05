@@ -3,6 +3,7 @@ import { MATCH_SERVER_EVENTS } from '@campusly/shared-types';
 import { logger } from '../config/logger.js';
 import { matchingRepository } from '../repositories/matchingRepository.js';
 import { friendRepository } from '../repositories/friendRepository.js';
+import { profileRepository } from '../repositories/profileRepository.js';
 
 /**
  * Anonymous matching engine (MATCHING_ENGINE.md, ARCHITECTURE.md §5).
@@ -18,6 +19,8 @@ interface WaitingEntry {
   universityId: string;
   enqueuedAt: number;
   lastHeartbeat: number;
+  gender: string;
+  genderPreference: string;
 }
 
 const STALE_MS = 30_000; // no heartbeat for 30s → reclaimed
@@ -59,7 +62,7 @@ class MatchingService {
   }
 
   /** A user requests a match. Pairs synchronously if a partner is waiting. */
-  async joinQueue(userId: string, universityId: string): Promise<void> {
+  async joinQueue(userId: string, universityId: string, genderPreference = 'all'): Promise<void> {
     // Already in an active session? Re-notify (reconnection) instead of queueing.
     const active = await matchingRepository.getActiveSessionForUser(userId);
     if (active) {
@@ -70,14 +73,30 @@ class MatchingService {
       return;
     }
 
+    // Load user's own gender from profile
+    const profile = await profileRepository.getProfile(userId);
+    const userGender = profile?.gender ?? 'other';
+
+    logger.info({ userId, userGender, genderPreference }, 'User enqueued request for matching');
+
     // Find the oldest compatible waiting partner (same campus, not self, not
-    // blocked in either direction — block enforcement, FRIEND_SYSTEM.md §4).
-    const partnerId = await this.pickPartner(userId, universityId);
+    // blocked in either direction, and satisfying mutual gender preferences).
+    const partnerId = await this.pickPartner(userId, universityId, userGender, genderPreference);
 
     if (!partnerId) {
       const now = Date.now();
-      this.waiting.set(userId, { universityId, enqueuedAt: now, lastHeartbeat: now });
+      this.waiting.set(userId, {
+        universityId,
+        enqueuedAt: now,
+        lastHeartbeat: now,
+        gender: userGender,
+        genderPreference,
+      });
       await matchingRepository.upsertWaiting(userId, universityId);
+      logger.info(
+        { userId, totalWaiting: this.waiting.size },
+        'No compatible partner waiting. Added to in-memory waiting pool.',
+      );
       this.emit(userId, MATCH_SERVER_EVENTS.QUEUE_STATUS, {
         status: 'waiting',
         waitingCount: this.waiting.size,
@@ -86,6 +105,7 @@ class MatchingService {
     }
 
     // Claim the partner synchronously (atomic in Node's single thread).
+    const partnerEntry = this.waiting.get(partnerId);
     this.waiting.delete(partnerId);
     this.waiting.delete(userId);
 
@@ -97,22 +117,47 @@ class MatchingService {
         this.emit(uid, MATCH_SERVER_EVENTS.MATCH_FOUND, payload);
         this.emit(uid, MATCH_SERVER_EVENTS.SESSION_STARTED, started);
       }
-      logger.info({ sessionId: session.id }, 'Anonymous session created');
+      logger.info(
+        { sessionId: session.id, userA: userId, userB: partnerId },
+        'Symmetric match found! Anonymous session created.',
+      );
     } catch (err) {
       // Roll back the claim: re-queue the partner so they are not stranded.
       logger.error({ err }, 'Session creation failed; re-queuing partner');
       const now = Date.now();
-      this.waiting.set(partnerId, { universityId, enqueuedAt: now, lastHeartbeat: now });
+      this.waiting.set(partnerId, {
+        universityId,
+        enqueuedAt: now,
+        lastHeartbeat: now,
+        gender: partnerEntry?.gender ?? 'other',
+        genderPreference: partnerEntry?.genderPreference ?? 'all',
+      });
       this.emit(userId, MATCH_SERVER_EVENTS.MATCH_CANCELLED, { reason: 'pairing_failed' });
     }
   }
 
-  private async pickPartner(userId: string, universityId: string): Promise<string | null> {
+  private async pickPartner(
+    userId: string,
+    universityId: string,
+    userGender: string,
+    genderPreference: string,
+  ): Promise<string | null> {
     // Oldest-first candidates on the same campus (broadly FIFO fairness).
     const candidates: { id: string; enqueuedAt: number }[] = [];
     for (const [id, entry] of this.waiting) {
       if (id === userId) continue;
       if (entry.universityId !== universityId) continue;
+
+      // Symmetric gender matching:
+      // 1. Does the candidate's gender match the enqueuer's preference?
+      if (genderPreference !== 'all' && entry.gender !== genderPreference) {
+        continue;
+      }
+      // 2. Does the enqueuer's gender match the candidate's preference?
+      if (entry.genderPreference !== 'all' && userGender !== entry.genderPreference) {
+        continue;
+      }
+
       candidates.push({ id, enqueuedAt: entry.enqueuedAt });
     }
     candidates.sort((a, b) => a.enqueuedAt - b.enqueuedAt);

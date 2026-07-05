@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type FormEvent, type ChangeEvent } from 'react';
 import type { MessageContextType } from '@campusly/shared-types';
-import { ImagePlus, Mic, Square } from 'lucide-react';
+import { ImagePlus, Mic, Square, Paperclip, Shuffle } from 'lucide-react';
 import { useConversation } from '../hooks/useConversation';
 import { mediaApi } from '../lib/media';
 import { Button } from './ui/Button';
@@ -20,10 +20,12 @@ export function Chat({
   contextType,
   contextId,
   selfId,
+  onNextMatch,
 }: {
   contextType: MessageContextType;
   contextId: string;
   selfId: string;
+  onNextMatch?: () => void;
 }) {
   const { messages, partnerTyping, expiredMessageIds, send, sendMedia, notifyTyping } =
     useConversation(contextType, contextId);
@@ -31,6 +33,7 @@ export function Chat({
   const [busy, setBusy] = useState(false);
   const [recording, setRecording] = useState(false);
   const [mediaError, setMediaError] = useState<string | null>(null);
+  const [showMediaMenu, setShowMediaMenu] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -123,25 +126,28 @@ export function Chat({
           <ul className="flex flex-col gap-space-2">
             {messages.map((m) => {
               const mine = m.senderId === selfId;
+              const hasAttachment = m.attachment !== null && m.attachment !== undefined;
               return (
                 <li key={m.id} className={cn('flex', mine ? 'justify-end' : 'justify-start')}>
-                  <span
-                    className={cn(
-                      'max-w-[75%] rounded-card px-space-3 py-space-2 text-body break-words whitespace-pre-wrap',
-                      mine
-                        ? 'bg-brand text-brand-foreground'
-                        : 'bg-surface text-foreground border border-border',
-                    )}
-                  >
-                    {m.attachment ? (
+                  {hasAttachment ? (
+                    <div className="max-w-[75%] rounded-card overflow-hidden">
                       <MediaAttachment
-                        attachment={m.attachment}
+                        attachment={m.attachment!}
                         expired={expiredMessageIds.has(m.id)}
                       />
-                    ) : (
-                      m.body
-                    )}
-                  </span>
+                    </div>
+                  ) : (
+                    <span
+                      className={cn(
+                        'max-w-[75%] rounded-card px-space-3 py-space-2 text-body break-words whitespace-pre-wrap',
+                        mine
+                          ? 'bg-brand text-brand-foreground'
+                          : 'bg-surface text-foreground border border-border',
+                      )}
+                    >
+                      {m.body}
+                    </span>
+                  )}
                 </li>
               );
             })}
@@ -175,7 +181,7 @@ export function Chat({
       )}
 
       <form
-        className="flex items-center gap-space-2 border-t border-divider pt-space-3 pb-[env(safe-area-inset-bottom,16px)] md:pb-0"
+        className="relative flex items-center gap-space-2 border-t border-divider px-space-4 md:px-space-6 pt-space-3 pb-[env(safe-area-inset-bottom,16px)] md:pb-0"
         onSubmit={onSubmit}
       >
         <input
@@ -185,26 +191,83 @@ export function Chat({
           className="hidden"
           onChange={(e) => void onPickImage(e)}
         />
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          aria-label="Attach image"
-          disabled={busy || recording}
-          onClick={() => fileRef.current?.click()}
-        >
-          <ImagePlus className="h-5 w-5" />
-        </Button>
-        <Button
-          type="button"
-          variant={recording ? 'danger' : 'ghost'}
-          size="sm"
-          aria-label={recording ? 'Stop recording' : 'Record voice message'}
-          disabled={busy && !recording}
-          onClick={() => (recording ? stopRecording() : void startRecording())}
-        >
-          {recording ? <Square className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
-        </Button>
+
+        {/* Media popover options */}
+        {showMediaMenu && !recording && (
+          <div className="absolute bottom-[60px] left-4 bg-card border border-border rounded-2xl shadow-xl flex flex-col p-2 z-30 min-w-[155px] gap-1 animate-in slide-in-from-bottom-2 duration-150">
+            <button
+              type="button"
+              onClick={() => {
+                setShowMediaMenu(false);
+                fileRef.current?.click();
+              }}
+              className="flex items-center gap-3 px-3 py-2 text-small font-medium hover:bg-muted/60 transition-colors rounded-xl text-foreground text-left w-full"
+            >
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#8e6ef5] text-white shadow-sm shadow-[#8e6ef5]/20">
+                <ImagePlus className="h-4 w-4 stroke-[2.2]" />
+              </span>
+              <span>Photo</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShowMediaMenu(false);
+                void startRecording();
+              }}
+              className="flex items-center gap-3 px-3 py-2 text-small font-medium hover:bg-muted/60 transition-colors rounded-xl text-foreground text-left w-full"
+            >
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#ff5d6c] text-white shadow-sm shadow-[#ff5d6c]/20">
+                <Mic className="h-4 w-4 stroke-[2.2]" />
+              </span>
+              <span>Voice Note</span>
+            </button>
+          </div>
+        )}
+
+        {/* Media Button */}
+        {recording ? (
+          <Button
+            type="button"
+            variant="danger"
+            size="sm"
+            aria-label="Stop recording"
+            onClick={stopRecording}
+            className="rounded-full h-9 w-9 p-0 flex items-center justify-center shrink-0"
+          >
+            <Square className="h-4.5 w-4.5" />
+          </Button>
+        ) : (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            aria-label="Toggle media menu"
+            disabled={busy}
+            onClick={() => setShowMediaMenu(!showMediaMenu)}
+            className={cn(
+              'rounded-full h-9 w-9 p-0 flex items-center justify-center shrink-0 transition-transform duration-200',
+              showMediaMenu ? 'rotate-45' : '',
+            )}
+          >
+            <Paperclip className="h-5 w-5" />
+          </Button>
+        )}
+
+        {/* Next User Button (Shuffle) */}
+        {onNextMatch && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            aria-label="Next User"
+            disabled={busy || recording}
+            onClick={onNextMatch}
+            className="rounded-full h-9 w-9 p-0 flex items-center justify-center shrink-0 text-muted-foreground hover:text-foreground hover:bg-muted/40"
+          >
+            <Shuffle className="h-5 w-5" />
+          </Button>
+        )}
+
         <Input
           value={draft}
           onChange={(e) => {

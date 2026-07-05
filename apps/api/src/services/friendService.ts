@@ -29,6 +29,7 @@ const MAX_PENDING_OUTGOING = 50; // spam-resistance cap on outstanding sent requ
 function toSummary(s: {
   id: string;
   name: string;
+  username: string | null;
   universityId: string;
   year: number | null;
   avatarMediaId: string | null;
@@ -36,6 +37,7 @@ function toSummary(s: {
   return {
     id: s.id,
     name: s.name,
+    username: s.username,
     universityId: s.universityId,
     year: s.year,
     avatarMediaId: s.avatarMediaId,

@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   PROFILE_VISIBILITIES,
@@ -26,6 +27,37 @@ export default function SettingsPage() {
     mutationFn: (patch: Partial<PrivacySettings>) => profileApi.updatePrivacy(patch),
     onSuccess: (updated) => queryClient.setQueryData(['profile', 'me'], updated),
   });
+
+  // Match settings / gender filter local state
+  const [matchGenderPref, setMatchGenderPref] = useState<'all' | 'male' | 'female' | 'other'>(
+    'all',
+  );
+  const [showFilterBeforeMatch, setShowFilterBeforeMatch] = useState(true);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const skip = localStorage.getItem('anonymousu:match:skip_gender_filter') === 'true';
+      const storedPref =
+        (localStorage.getItem('anonymousu:match:gender_preference') as any) || 'all';
+      setMatchGenderPref(storedPref);
+      setShowFilterBeforeMatch(!skip);
+    }
+  }, []);
+
+  const handleGenderPrefChange = (val: 'all' | 'male' | 'female' | 'other') => {
+    setMatchGenderPref(val);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('anonymousu:match:gender_preference', val);
+    }
+  };
+
+  const handleShowFilterToggle = () => {
+    const nextVal = !showFilterBeforeMatch;
+    setShowFilterBeforeMatch(nextVal);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('anonymousu:match:skip_gender_filter', nextVal ? 'false' : 'true');
+    }
+  };
 
   if (isLoading || !user) return null;
   const privacy = profileQuery.data?.privacy;
@@ -57,9 +89,10 @@ export default function SettingsPage() {
         }`}
       >
         <span
-          className={`absolute top-0.5 h-5 w-5 rounded-full bg-background transition-transform ${
-            value ? 'translate-x-5' : 'translate-x-0.5'
-          }`}
+          className="absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-background transition-transform duration-200"
+          style={{
+            transform: value ? 'translateX(20px)' : 'translateX(0px)',
+          }}
         />
       </button>
     </div>
@@ -144,6 +177,56 @@ export default function SettingsPage() {
               </label>
             </Card>
           )}
+
+          {/* Match Settings Card */}
+          <Card className="flex flex-col gap-space-5">
+            <div className="flex flex-col gap-space-1">
+              <CardTitle>Match Settings</CardTitle>
+              <CardDescription>Configure your anonymous matching preferences.</CardDescription>
+            </div>
+
+            {/* Toggle show settings before matching */}
+            <div className="flex items-center justify-between gap-space-4">
+              <div className="flex flex-col">
+                <span className="text-body text-foreground">Show settings before matching</span>
+                <span className="text-caption text-muted-foreground">
+                  Prompt for gender filters every time you start searching for a match.
+                </span>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={showFilterBeforeMatch}
+                aria-label="Show settings before matching"
+                onClick={handleShowFilterToggle}
+                className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
+                  showFilterBeforeMatch ? 'bg-brand' : 'bg-disabled'
+                }`}
+              >
+                <span
+                  className="absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-background transition-transform duration-200"
+                  style={{
+                    transform: showFilterBeforeMatch ? 'translateX(20px)' : 'translateX(0px)',
+                  }}
+                />
+              </button>
+            </div>
+
+            {/* Gender Preference Select */}
+            <label className="flex flex-col gap-space-1">
+              <span className="text-body text-foreground">Default matching filter</span>
+              <select
+                value={matchGenderPref}
+                onChange={(e) => handleGenderPrefChange(e.target.value as any)}
+                className="h-11 rounded-input border border-border bg-background px-space-3 text-body text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+              >
+                <option value="all">Everyone</option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+                <option value="other">Other</option>
+              </select>
+            </label>
+          </Card>
         </div>
       </div>
     </div>

@@ -5,8 +5,9 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from './AuthProvider';
 import { Button } from './ui/Button';
 import { ThemeToggle } from './ThemeToggle';
-import { Building2, Zap, Users, User, Settings, ShieldAlert, LogOut } from 'lucide-react';
+import { Building2, Zap, Users, User, Settings, ShieldAlert, LogOut, Search } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { BrandLogo } from './BrandLogo';
 
 /**
  * Premium, fully responsive navigation with Apple-style glassmorphism.
@@ -38,15 +39,12 @@ export function AppNav() {
     <>
       {/* Top Header Bar (Desktop & Mobile Top Info) */}
       <header className="flex w-full items-center justify-between border-b border-border bg-background/80 py-space-3 backdrop-blur-md sticky top-0 z-30 px-space-4">
-        <Link
-          href="/match"
-          className="font-display text-h3 font-bold tracking-tight text-foreground hover:opacity-90 select-none"
-        >
-          Anonymous<span className="text-brand">U</span>
+        <Link href="/match" className="flex items-center hover:opacity-90 select-none">
+          <BrandLogo className="h-8 w-8 hover:scale-105 active:scale-95 transition-transform" />
         </Link>
 
         {/* Desktop Links (Hidden on Mobile) */}
-        <nav className="hidden md:flex items-center gap-space-3">
+        <nav className="hidden md:flex items-center gap-space-3 absolute left-1/2 -translate-x-1/2">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
@@ -84,6 +82,18 @@ export function AppNav() {
 
         {/* Action Controls */}
         <div className="flex items-center gap-space-2">
+          <Link
+            href="/search"
+            className={cn(
+              'flex h-9 w-9 items-center justify-center rounded-button border border-transparent transition-all',
+              pathname === '/search'
+                ? 'text-brand bg-brand/10 border-brand/20 shadow-[0_2px_8px_rgba(255,153,0,0.12)]'
+                : 'text-muted-foreground hover:text-foreground hover:bg-foreground/5 hover:border-border/60',
+            )}
+            aria-label="Search"
+          >
+            <Search className="h-4 w-4" />
+          </Link>
           <ThemeToggle />
           <Button
             variant="ghost"

@@ -1,13 +1,14 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
-import { Building2, Eye, MessageCircle, Users } from 'lucide-react';
+import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { Building2, Eye, Mail, MessageCircle, Users } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../components/AuthProvider';
 import { GoogleSignInButton } from '../components/GoogleSignInButton';
 import { ConstellationBackground } from '../components/landing/ConstellationBackground';
 import { ApiClientError } from '../lib/apiClient';
 import { cn } from '../lib/utils';
+import { BrandLogo } from '../components/BrandLogo';
 
 /**
  * Public landing / welcome page — the first impression for a visitor. Premium
@@ -16,12 +17,16 @@ import { cn } from '../lib/utils';
  * Signed-in users are sent straight into the app.
  */
 export default function LandingPage() {
-  const { user, isLoading, loginWithGoogle } = useAuth();
+  const { user, isLoading, loginWithGoogle, loginWithEmail } = useAuth();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [showSignIn, setShowSignIn] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Email+password form state
+  const [emailInput, setEmailInput] = useState('');
+  const [passwordInput, setPasswordInput] = useState('');
+  const [showEmailForm, setShowEmailForm] = useState(false);
   const journeySteps = [
     { label: 'Anonymous chat', Icon: MessageCircle },
     { label: 'Reveal', Icon: Eye },
@@ -88,6 +93,7 @@ export default function LandingPage() {
 
   const closeSignIn = useCallback(() => {
     setShowSignIn(false);
+    setShowEmailForm(false);
     setError(null);
     setViewInUrl(null, 'push');
   }, [setViewInUrl]);
@@ -135,72 +141,13 @@ export default function LandingPage() {
             <span className="font-display text-h3 font-bold tracking-tight">
               Anonymous<span className="text-brand">U</span>
             </span>
-            <button
-              type="button"
-              onClick={openSignIn}
-              className="text-caption text-muted-foreground transition-colors hover:text-foreground"
-            >
-              Sign in
-            </button>
           </header>
 
           {/* Hero */}
           <main className="flex flex-1 flex-col items-center justify-center px-space-5 text-center">
             <div className="mb-space-7 flex justify-center" aria-label="AnonymousU logo mark">
               <div className="relative flex h-28 w-28 items-center justify-center">
-                <svg
-                  className="h-20 w-20"
-                  viewBox="0 0 100 100"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <defs>
-                    <linearGradient
-                      id="uGrad"
-                      x1="50"
-                      y1="0"
-                      x2="50"
-                      y2="100"
-                      gradientUnits="userSpaceOnUse"
-                    >
-                      <stop offset="0%" stopColor="#FFC04D" />
-                      <stop offset="40%" stopColor="#FF9900" />
-                      <stop offset="100%" stopColor="#D97706" />
-                    </linearGradient>
-                    <linearGradient
-                      id="glossArc"
-                      x1="20"
-                      y1="40"
-                      x2="60"
-                      y2="90"
-                      gradientUnits="userSpaceOnUse"
-                    >
-                      <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.15" />
-                      <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
-                    </linearGradient>
-                    <clipPath id="uClip">
-                      <rect x="0" y="0" width="100" height="100" rx="8" />
-                    </clipPath>
-                  </defs>
-
-                  {/* Thick solid U shape — outer path minus inner cutout */}
-                  <path
-                    d="M14,8 L14,60 C14,82 30,96 50,96 C70,96 86,82 86,60 L86,8 L70,8 L70,60 C70,72 61,80 50,80 C39,80 30,72 30,60 L30,8 Z"
-                    fill="url(#uGrad)"
-                  />
-
-                  {/* Head silhouette — circle sitting on top of shoulders */}
-                  <ellipse cx="50" cy="30" rx="11" ry="12" fill="url(#uGrad)" />
-
-                  {/* Shoulders — merge into the inner U walls */}
-                  <path d="M30,60 C30,54 36,44 50,44 C64,44 70,54 70,60" fill="url(#uGrad)" />
-
-                  {/* Subtle glossy arc sweep for depth */}
-                  <path
-                    d="M14,60 C14,60 20,50 30,75 C38,90 50,96 50,96 C30,96 14,82 14,60 Z"
-                    fill="url(#glossArc)"
-                  />
-                </svg>
+                <BrandLogo className="h-24 w-24 hover:scale-105 transition-transform" />
               </div>
             </div>
 
@@ -270,14 +217,109 @@ export default function LandingPage() {
                 <section className="px-space-2">
                   <div className="mx-auto flex w-full max-w-md flex-col items-center gap-space-4 px-space-5 py-space-6 text-left">
                     <div className="w-full text-center">
-                      <h2 className="text-h2 text-foreground">Sign in to your campus</h2>
-                      <p className="mt-space-2 text-caption text-muted-foreground">
-                        Use your college Google account. AnonymousU is for verified students only.
-                      </p>
+                      <h2 className="text-h2 font-semibold text-foreground">
+                        Sign in to your campus
+                      </h2>
                     </div>
 
-                    <div className="w-full">
-                      <GoogleSignInButton onCredential={handleCredential} />
+                    {/* Sign-In Actions (Vertical Stack) */}
+                    <div className="w-full flex flex-col gap-space-4">
+                      {!showEmailForm ? (
+                        <>
+                          {/* Google Sign-in */}
+                          <div className="w-full">
+                            <GoogleSignInButton onCredential={handleCredential} />
+                          </div>
+
+                          {/* Divider */}
+                          <div className="relative flex items-center justify-center py-1">
+                            <div className="absolute inset-0 flex items-center">
+                              <span className="w-full border-t border-border/40" />
+                            </div>
+                            <span className="relative bg-background px-3 text-caption text-muted-foreground select-none">
+                              or
+                            </span>
+                          </div>
+
+                          {/* Continue with Email Button */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowEmailForm(true);
+                              setError(null);
+                            }}
+                            className="flex h-10 w-full items-center justify-center gap-space-2 rounded-full border border-border/60 bg-transparent px-space-4 text-body font-medium text-foreground transition-all hover:bg-foreground/5 hover:border-border/90 active:scale-[0.99] select-none"
+                          >
+                            <Mail className="h-4 w-4 text-muted-foreground" />
+                            <span>Continue with email</span>
+                          </button>
+                        </>
+                      ) : (
+                        /* Email + Password Form */
+                        <form
+                          className="flex w-full flex-col gap-space-3"
+                          onSubmit={(e: FormEvent) => {
+                            e.preventDefault();
+                            setError(null);
+                            setPending(true);
+                            loginWithEmail(emailInput.trim(), passwordInput)
+                              .then((signedInUser) => {
+                                router.replace(
+                                  signedInUser.profileComplete ? '/match' : '/onboarding',
+                                );
+                              })
+                              .catch((err: unknown) => {
+                                setError(
+                                  err instanceof ApiClientError
+                                    ? err.message
+                                    : 'Invalid email or password.',
+                                );
+                              })
+                              .finally(() => setPending(false));
+                          }}
+                        >
+                          <label className="flex flex-col gap-space-1">
+                            <span className="text-small font-medium text-foreground">Email</span>
+                            <input
+                              type="email"
+                              required
+                              value={emailInput}
+                              onChange={(e) => setEmailInput(e.target.value)}
+                              placeholder="you@campus.edu"
+                              className="h-10 rounded-button border border-border bg-surface px-space-3 text-body text-foreground placeholder:text-muted-foreground focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                            />
+                          </label>
+                          <label className="flex flex-col gap-space-1">
+                            <span className="text-small font-medium text-foreground">Password</span>
+                            <input
+                              type="password"
+                              required
+                              value={passwordInput}
+                              onChange={(e) => setPasswordInput(e.target.value)}
+                              placeholder="••••••••"
+                              className="h-10 rounded-button border border-border bg-surface px-space-3 text-body text-foreground placeholder:text-muted-foreground focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                            />
+                          </label>
+                          <button
+                            type="submit"
+                            disabled={pending}
+                            className="h-10 rounded-button bg-brand px-space-6 text-body font-semibold text-brand-foreground transition-transform hover:scale-[1.02] disabled:opacity-60"
+                          >
+                            {pending ? 'Signing in…' : 'Sign In'}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowEmailForm(false);
+                              setError(null);
+                            }}
+                            className="mt-2 text-caption text-muted-foreground hover:text-foreground transition-colors self-center"
+                          >
+                            Back to other options
+                          </button>
+                        </form>
+                      )}
                     </div>
 
                     {pending && (
@@ -301,10 +343,6 @@ export default function LandingPage() {
               </div>
             </div>
           </main>
-
-          <footer className="px-space-5 py-space-6 text-center text-small text-muted-foreground">
-            Built for campuses. Private by design. Accountable by verification.
-          </footer>
         </div>
       )}
     </div>

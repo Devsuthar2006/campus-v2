@@ -64,6 +64,13 @@
       "when": 1782546714601,
       "tag": "0008_wandering_jackpot",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1783259776875,
+      "tag": "0009_windy_impossible_man",
+      "breakpoints": true
     }
   ]
 }

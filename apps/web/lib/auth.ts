@@ -69,4 +69,24 @@ export const authApi = {
     await apiFetch<{ success: boolean }>('/auth/account', { method: 'DELETE' });
     authStorage.clear();
   },
+
+  /** Sign in with email + password. */
+  async loginWithEmail(email: string, password: string): Promise<AuthUser> {
+    const data = await apiFetch<AuthResponse>('/auth/email', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+      skipAuth: true,
+    });
+    authStorage.setTokens(data.tokens);
+    return data.user;
+  },
+
+  /** Check if a username is available (for onboarding). */
+  async checkUsername(username: string): Promise<{ available: boolean }> {
+    return apiFetch<{ available: boolean }>('/auth/check-username', {
+      method: 'POST',
+      body: JSON.stringify({ username }),
+      skipAuth: true,
+    });
+  },
 };

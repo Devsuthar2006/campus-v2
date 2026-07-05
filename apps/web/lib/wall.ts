@@ -127,4 +127,9 @@ export const wallApi = {
       body: JSON.stringify({ targetType, targetId, reason, details }),
     });
   },
+
+  async userPosts(userId: string, cursor?: string): Promise<WallFeedResponse> {
+    const q = cursor ? `?cursor=${encodeURIComponent(cursor)}` : '';
+    return apiFetch<WallFeedResponse>(`/wall/users/${userId}/posts${q}`);
+  },
 };

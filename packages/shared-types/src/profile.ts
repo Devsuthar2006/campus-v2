@@ -59,6 +59,7 @@ export interface PublicProfile {
   bio: string | null;
   avatarMediaId: string | null;
   interests: Interest[];
+  username: string | null;
 }
 
 // --- Request schemas ---
@@ -97,5 +98,14 @@ export const CompleteProfileSchema = z.object({
   year: z.number().int().min(1).max(10).optional(),
   branchId: z.string().uuid().optional(),
   interests: z.array(z.string().trim().min(1).max(40)).max(20).optional(),
+  /** Instagram-style username (set during onboarding). */
+  username: z
+    .string()
+    .min(3, 'Username must be at least 3 characters.')
+    .max(30, 'Username must be at most 30 characters.')
+    .regex(/^[a-z0-9_]+$/, 'Only lowercase letters, numbers, and underscores.')
+    .optional(),
+  /** Password (set during onboarding). */
+  password: z.string().min(8, 'Password must be at least 8 characters.').max(128).optional(),
 });
 export type CompleteProfileInput = z.infer<typeof CompleteProfileSchema>;

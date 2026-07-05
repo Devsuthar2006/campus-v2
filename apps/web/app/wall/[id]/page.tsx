@@ -52,7 +52,7 @@ export default function PostDetailPage() {
   };
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-space-5 px-space-4 py-space-8 md:px-space-8">
+    <main className="mx-auto flex min-h-screen max-w-2xl md:max-w-4xl flex-col gap-space-5 px-space-4 py-space-8 md:px-space-8">
       <AppNav />
       <Button variant="ghost" size="sm" className="self-start" onClick={() => router.push('/wall')}>
         ← Back to wall

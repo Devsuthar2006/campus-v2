@@ -17,9 +17,11 @@ import { Textarea } from '../ui/Textarea';
 export function Composer({
   categories,
   onCreated,
+  onClose,
 }: {
   categories: WallCategory[];
   onCreated: (post: WallPost) => void;
+  onClose?: () => void;
 }) {
   const [body, setBody] = useState('');
   const [anonymous, setAnonymous] = useState(false);
@@ -66,6 +68,7 @@ export function Composer({
       setPoll(false);
       setOptions(['', '']);
       setMediaId(null);
+      onClose?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not post.');
     } finally {
@@ -80,7 +83,21 @@ export function Composer({
       : body.trim().length > 0 || Boolean(mediaId));
 
   return (
-    <Card className="flex flex-col gap-space-3">
+    <Card className="flex flex-col gap-space-3 w-full border-0 p-0 shadow-none bg-transparent">
+      <div className="flex items-center justify-between border-b border-divider pb-space-3">
+        <h3 className="text-body font-semibold text-foreground">Create a Post</h3>
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1 text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors rounded-full"
+            aria-label="Close"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        )}
+      </div>
+
       <Textarea
         value={body}
         onChange={(e) => setBody(e.target.value)}

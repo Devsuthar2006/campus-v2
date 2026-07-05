@@ -1,5 +1,10 @@
 import { Router } from 'express';
-import { GoogleLoginSchema, RefreshSchema } from '@campusly/shared-types';
+import {
+  GoogleLoginSchema,
+  RefreshSchema,
+  EmailLoginSchema,
+  CheckUsernameSchema,
+} from '@campusly/shared-types';
 import { asyncHandler } from './asyncHandler.js';
 import { sendData } from './respond.js';
 import { authService, type AuthContext } from '../services/authService.js';
@@ -24,6 +29,26 @@ authRouter.post(
     const { credential } = GoogleLoginSchema.parse(req.body);
     const result = await authService.loginWithGoogle(credential, context(req));
     sendData(res, result, 201);
+  }),
+);
+
+/** POST /auth/email — sign in with email + password. */
+authRouter.post(
+  '/auth/email',
+  asyncHandler(async (req, res) => {
+    const { email, password } = EmailLoginSchema.parse(req.body);
+    const result = await authService.loginWithEmail(email, password, context(req));
+    sendData(res, result);
+  }),
+);
+
+/** POST /auth/check-username — real-time username availability check. */
+authRouter.post(
+  '/auth/check-username',
+  asyncHandler(async (req, res) => {
+    const { username } = CheckUsernameSchema.parse(req.body);
+    const result = await authService.checkUsernameAvailability(username);
+    sendData(res, result);
   }),
 );
 

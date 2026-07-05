@@ -211,3 +211,19 @@ wallRouter.post(
     sendData(res, { success: true });
   }),
 );
+
+/** GET /wall/users/:userId/posts — list posts by a specific user. */
+wallRouter.get(
+  '/wall/users/:userId/posts',
+  asyncHandler(async (req, res) => {
+    const { userId } = z.object({ userId: z.string().uuid() }).parse(req.params);
+    const { cursor, limit } = z
+      .object({
+        cursor: z.string().optional(),
+        limit: z.coerce.number().int().min(1).max(50).default(20),
+      })
+      .parse(req.query);
+    const result = await wallService.listUserPosts(getAuth(req), userId, cursor, limit);
+    sendData(res, result);
+  }),
+);

@@ -79,14 +79,17 @@ export function useMatching() {
     };
   }, [stopHeartbeat]);
 
-  const findMatch = useCallback(() => {
-    const socket = getSocket();
-    setEndedReason(null);
-    setState('waiting');
-    socket.emit(MATCH_CLIENT_EVENTS.JOIN_QUEUE);
-    stopHeartbeat();
-    heartbeat.current = setInterval(() => socket.emit(MATCH_CLIENT_EVENTS.HEARTBEAT), 10_000);
-  }, [stopHeartbeat]);
+  const findMatch = useCallback(
+    (genderPreference = 'all') => {
+      const socket = getSocket();
+      setEndedReason(null);
+      setState('waiting');
+      socket.emit(MATCH_CLIENT_EVENTS.JOIN_QUEUE, { genderPreference });
+      stopHeartbeat();
+      heartbeat.current = setInterval(() => socket.emit(MATCH_CLIENT_EVENTS.HEARTBEAT), 10_000);
+    },
+    [stopHeartbeat],
+  );
 
   const cancel = useCallback(() => {
     getSocket().emit(MATCH_CLIENT_EVENTS.LEAVE_QUEUE);
