@@ -169,7 +169,7 @@ export function PostCard({
               Cancel
             </Button>
             <Button
-              variant="default"
+              variant="primary"
               className="bg-danger text-white hover:bg-danger/90"
               size="sm"
               onClick={() => void confirmDelete()}

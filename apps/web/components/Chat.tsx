@@ -57,7 +57,7 @@ export function Chat({
     setMediaError(null);
     setBusy(true);
     try {
-      const media = await mediaApi.upload(file, 'image');
+      const media = await mediaApi.upload(file, 'image', { isTemporary: true });
       sendMedia(media.id, 'image');
     } catch {
       setMediaError('Could not send that image. Please try again.');
@@ -93,7 +93,7 @@ export function Chat({
         const blob = new Blob(chunksRef.current, { type: mime });
         setBusy(true);
         mediaApi
-          .upload(blob, 'voice', durationMs)
+          .upload(blob, 'voice', { durationMs })
           .then((media) => sendMedia(media.id, 'voice', durationMs))
           .catch(() => setMediaError('Could not send that voice message. Please try again.'))
           .finally(() => setBusy(false));

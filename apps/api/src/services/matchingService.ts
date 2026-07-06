@@ -4,6 +4,7 @@ import { logger } from '../config/logger.js';
 import { matchingRepository } from '../repositories/matchingRepository.js';
 import { friendRepository } from '../repositories/friendRepository.js';
 import { profileRepository } from '../repositories/profileRepository.js';
+import { userRepository } from '../repositories/userRepository.js';
 
 /**
  * Anonymous matching engine (MATCHING_ENGINE.md, ARCHITECTURE.md §5).
@@ -67,25 +68,28 @@ class MatchingService {
     if (!active) return false;
 
     // We must identify the partner's user ID since active session rows store both A and B.
-    const partnerId = active.userAId === userId ? active.userBId : active.userAId;
+    const participants = await matchingRepository.getParticipants(active.sessionId);
+    const partnerId = participants.find((id) => id !== userId);
+    if (!partnerId) return false;
 
     // We intentionally import `toPublicUserSummary` or resolve it inline.
-    // However, profileRepository.getPublicProfile handles fetching basic info.
-    // Wait, matchingRepository doesn't fetch public info directly, so we use profileRepository.
+    // However, profileRepository.getProfile handles fetching basic info.
     const partnerProfile = await profileRepository.getProfile(partnerId);
+    const partnerUser = await userRepository.findById(partnerId);
 
     this.emit(userId, MATCH_SERVER_EVENTS.SESSION_STARTED, {
       sessionId: active.sessionId,
       startedAt: active.startedAt.toISOString(),
-      partner: partnerProfile
-        ? {
-            id: partnerProfile.id,
-            name: partnerProfile.name,
-            avatarMediaId: partnerProfile.avatarMediaId,
-            gender: partnerProfile.gender,
-            bio: partnerProfile.bio,
-          }
-        : null,
+      partner:
+        partnerProfile && partnerUser
+          ? {
+              id: partnerProfile.userId,
+              name: partnerUser.name,
+              avatarMediaId: partnerProfile.avatarMediaId,
+              gender: partnerProfile.gender,
+              bio: partnerProfile.bio,
+            }
+          : null,
     });
     return true;
   }

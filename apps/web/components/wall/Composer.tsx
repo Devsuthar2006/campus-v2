@@ -256,7 +256,7 @@ export function Composer({
 
                 <Button
                   type="button"
-                  variant={poll ? 'secondary' : 'outline'}
+                  variant={poll ? 'secondary' : 'ghost'}
                   size="sm"
                   onClick={() => setPoll((v) => !v)}
                   className="h-10 px-space-3"
