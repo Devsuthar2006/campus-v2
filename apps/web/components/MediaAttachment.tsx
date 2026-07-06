@@ -15,19 +15,23 @@ export function MediaAttachment({
   attachment,
   expired,
   imgClassName,
+  context = 'chat',
 }: {
   attachment: ChatAttachment;
   expired?: boolean;
   /** Overrides image sizing (e.g. for avatars that fill a fixed circle). */
   imgClassName?: string;
+  /** 'chat' = blur + lightbox + expiry. 'wall' = direct display, no expiry. */
+  context?: 'chat' | 'wall';
 }) {
   const [url, setUrl] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
   const [showLightbox, setShowLightbox] = useState(false);
 
   const isExpired =
-    expired ||
-    (attachment.expiresAt !== null && new Date(attachment.expiresAt).getTime() < Date.now());
+    context === 'chat' &&
+    (expired ||
+      (attachment.expiresAt !== null && new Date(attachment.expiresAt).getTime() < Date.now()));
 
   useEffect(() => {
     if (isExpired) return;
@@ -81,8 +85,22 @@ export function MediaAttachment({
     return <video controls src={url} className="max-h-64 max-w-full rounded-card" />;
   }
 
-  // Handle click-to-reveal for shared chat photos
+  // Handle images
   if (attachment.kind === 'image') {
+    // Wall context — render clean, no blur, no expiry
+    if (context === 'wall') {
+      return (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={url}
+          alt="Shared media"
+          className={cn('max-h-96 w-full rounded-card object-cover', imgClassName)}
+          loading="lazy"
+        />
+      );
+    }
+
+    // Chat context — blur + lightbox + expiry
     return (
       <>
         <div

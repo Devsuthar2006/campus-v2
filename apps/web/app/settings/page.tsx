@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   PROFILE_VISIBILITIES,
@@ -8,13 +9,18 @@ import {
   type PrivacySettings,
 } from '@campusly/shared-types';
 import { useRequireAuth } from '../../hooks/useRequireAuth';
+import { useAuth } from '../../components/AuthProvider';
 import { profileApi } from '../../lib/profile';
 import { Card, CardTitle, CardDescription } from '../../components/ui/Card';
 import { AppNav } from '../../components/AppNav';
+import { ThemeToggle } from '../../components/ThemeToggle';
+import { LogOut } from 'lucide-react';
 
 /** Settings — privacy controls (UI_GUIDELINES.md §12; AUTH_SYSTEM.md §9). */
 export default function SettingsPage() {
   const { user, isLoading } = useRequireAuth();
+  const { logout } = useAuth();
+  const router = useRouter();
   const queryClient = useQueryClient();
 
   const profileQuery = useQuery({
@@ -226,6 +232,39 @@ export default function SettingsPage() {
                 <option value="other">Other</option>
               </select>
             </label>
+          </Card>
+
+          {/* Appearance Card */}
+          <Card className="flex flex-col gap-space-5">
+            <div className="flex flex-col gap-space-1">
+              <CardTitle>Appearance</CardTitle>
+              <CardDescription>Customize the look and feel.</CardDescription>
+            </div>
+            <div className="flex items-center justify-between gap-space-4">
+              <div className="flex flex-col">
+                <span className="text-body text-foreground">Theme</span>
+                <span className="text-caption text-muted-foreground">
+                  Switch between light and dark mode.
+                </span>
+              </div>
+              <ThemeToggle />
+            </div>
+          </Card>
+
+          {/* Account Card */}
+          <Card className="flex flex-col gap-space-5">
+            <div className="flex flex-col gap-space-1">
+              <CardTitle>Account</CardTitle>
+              <CardDescription>Manage your account.</CardDescription>
+            </div>
+            <button
+              type="button"
+              onClick={() => void logout().then(() => router.replace('/?view=signin'))}
+              className="flex items-center gap-space-2 text-danger hover:text-danger/80 transition-colors text-body font-medium py-space-2"
+            >
+              <LogOut className="h-4 w-4" />
+              <span>Sign out</span>
+            </button>
           </Card>
         </div>
       </div>

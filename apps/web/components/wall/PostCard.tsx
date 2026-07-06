@@ -107,6 +107,7 @@ export function PostCard({
           {post.mediaIds.map((mediaId) => (
             <MediaAttachment
               key={mediaId}
+              context="wall"
               attachment={{
                 mediaId,
                 kind: 'image',
