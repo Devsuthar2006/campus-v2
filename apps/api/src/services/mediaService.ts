@@ -148,6 +148,13 @@ class MediaService {
         return true;
       }
     }
+
+    // Wall media: check if the media is attached to a wall post from the user's university.
+    const universityIds = await mediaRepository.universityIdsForMedia(media.id);
+    if (universityIds.length > 0) {
+      return universityIds.includes(claims.universityId);
+    }
+
     return false;
   }
 

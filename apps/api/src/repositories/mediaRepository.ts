@@ -4,6 +4,8 @@ import { db } from '../db/client.js';
 import {
   mediaAssets,
   messageAttachments,
+  postMedia,
+  wallPosts,
   type MediaAssetRow,
   type MessageAttachmentRow,
 } from '../db/schema.js';
@@ -115,6 +117,16 @@ export const mediaRepository = {
       .from(messageAttachments)
       .where(eq(messageAttachments.mediaId, mediaId));
     return rows.map((r) => r.messageId);
+  },
+
+  /** Get university IDs of all wall posts that reference a given media asset. */
+  async universityIdsForMedia(mediaId: string): Promise<string[]> {
+    const rows = await db
+      .select({ universityId: wallPosts.universityId })
+      .from(postMedia)
+      .innerJoin(wallPosts, eq(wallPosts.id, postMedia.postId))
+      .where(eq(postMedia.mediaId, mediaId));
+    return rows.map((r) => r.universityId);
   },
 
   async countActive(): Promise<number> {
