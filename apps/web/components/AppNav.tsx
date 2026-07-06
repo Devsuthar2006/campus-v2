@@ -32,7 +32,11 @@ export function AppNav() {
     <>
       {/* Top Header Bar (Desktop & Mobile Top Info) */}
       <header className="flex w-full items-center justify-between border-b border-border bg-background/80 py-space-3 backdrop-blur-md sticky top-0 z-30 px-space-4 gap-space-2 min-w-0">
-        <Link href="/match" className="flex items-center hover:opacity-90 select-none shrink-0">
+        <Link
+          href="/match"
+          id="brand-logo"
+          className="flex items-center hover:opacity-90 select-none shrink-0"
+        >
           <BrandLogo className="h-8 w-8 hover:scale-105 active:scale-95 transition-transform" />
         </Link>
 
@@ -45,6 +49,7 @@ export function AppNav() {
               <Link
                 key={item.href}
                 href={item.href}
+                id={`nav-${item.label.toLowerCase()}-desktop`}
                 className={cn(
                   'text-caption font-medium transition-all duration-200 flex items-center gap-space-1.5 px-space-3 py-1.5 rounded-button border shrink-0 whitespace-nowrap',
                   isActive
@@ -60,6 +65,7 @@ export function AppNav() {
           {isStaff && (
             <Link
               href="/admin"
+              id="nav-admin-desktop"
               className={cn(
                 'text-caption font-medium transition-all duration-200 flex items-center gap-space-1.5 px-space-3 py-1.5 rounded-button border',
                 pathname === '/admin' || pathname.startsWith('/admin/')
@@ -77,6 +83,7 @@ export function AppNav() {
         <div className="flex items-center gap-space-2">
           <Link
             href="/search"
+            id="nav-search"
             className={cn(
               'flex h-9 w-9 items-center justify-center rounded-button border border-transparent transition-all',
               pathname === '/search'
@@ -100,6 +107,7 @@ export function AppNav() {
               <Link
                 key={item.href}
                 href={item.href}
+                id={`nav-${item.label.toLowerCase()}-mobile`}
                 className={cn(
                   'flex flex-col items-center justify-center w-11 h-11 rounded-full transition-all duration-200 relative border',
                   isActive
@@ -118,6 +126,7 @@ export function AppNav() {
           {isStaff && (
             <Link
               href="/admin"
+              id="nav-admin-mobile"
               className={cn(
                 'flex flex-col items-center justify-center w-11 h-11 rounded-full transition-all duration-200 relative border',
                 pathname === '/admin' || pathname.startsWith('/admin/')

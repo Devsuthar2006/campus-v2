@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from 'next-themes';
 import { AuthProvider } from '../components/AuthProvider';
 import { InstallPrompt } from '../components/InstallPrompt';
+import { AppTour } from '../components/AppTour';
 
 /**
  * Client-side providers: React Query (server state), theme (dark-first,
@@ -27,6 +28,7 @@ export function Providers({ children }: { children: ReactNode }) {
         <AuthProvider>
           {children}
           <InstallPrompt />
+          <AppTour />
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>

@@ -16,6 +16,7 @@ import { getSocket } from '../../lib/socket';
 import { AppNav } from '../../components/AppNav';
 import { Chat } from '../../components/Chat';
 import { Globe3D } from '../../components/Globe3D';
+import { SearchingGraphics } from '../../components/SearchingGraphics';
 import { Avatar } from '../../components/Avatar';
 import { Button } from '../../components/ui/Button';
 import { MoreHorizontal, Sparkles, Users, Check } from 'lucide-react';
@@ -215,22 +216,40 @@ export default function MatchPage() {
 
       <div
         className={cn(
-          'flex-1 overflow-hidden flex flex-col',
-          state === 'in_session' ? 'px-0 pb-0' : 'px-space-4 pb-24 md:px-space-8 md:pb-8',
+          'flex-1 flex flex-col',
+          state === 'in_session'
+            ? 'overflow-hidden px-0 pb-0'
+            : 'overflow-y-auto px-space-4 pb-24 md:px-space-8 md:pb-8',
         )}
       >
         <div
           className={cn(
-            'w-full flex-1 flex flex-col overflow-hidden',
-            state === 'in_session' ? 'max-w-none py-0' : 'mx-auto max-w-5xl py-space-5',
+            'w-full flex-1 flex flex-col',
+            state === 'in_session'
+              ? 'max-w-none py-0 overflow-hidden'
+              : 'mx-auto max-w-5xl py-space-5',
           )}
         >
           {state !== 'in_session' ? (
             /* ── Idle / Waiting: Globe + Button only ── */
-            <div className="flex-1 flex flex-col items-center justify-center max-w-xl mx-auto w-full select-none">
-              {/* 3D Globe Canvas */}
-              <div className="w-full aspect-square max-w-[420px] mb-space-6">
-                <Globe3D isSearching={state === 'waiting'} className="h-full" />
+            <div className="flex-1 flex flex-col items-center justify-center max-w-xl mx-auto w-full select-none gap-4">
+              {/* Searching Graphics (rendered above the globe) */}
+              {state === 'waiting' && (
+                <div className="w-full max-w-[380px] animate-in fade-in slide-in-from-top-4 duration-500">
+                  <SearchingGraphics />
+                </div>
+              )}
+
+              {/* 3D Globe Canvas & Radar Rings (shrinks with animation when searching) */}
+              <div
+                className={cn(
+                  'relative w-full aspect-square transition-all duration-500 ease-in-out mx-auto',
+                  state === 'waiting'
+                    ? 'max-w-[240px] md:max-w-[340px] scale-[0.78] -mt-2 mb-2'
+                    : 'max-w-[320px] md:max-w-[420px] scale-100 mb-6',
+                )}
+              >
+                <Globe3D isSearching={state === 'waiting'} className="h-full w-full" />
               </div>
 
               {/* Action Button */}
@@ -246,15 +265,12 @@ export default function MatchPage() {
 
               {state === 'waiting' && (
                 <div className="flex flex-col items-center gap-space-4">
-                  <p className="text-caption text-muted-foreground animate-pulse tracking-wide">
-                    Searching…
-                  </p>
                   <Button
                     variant="secondary"
-                    className="min-w-[180px] px-space-8 rounded-full active:scale-95 transition-all"
+                    className="min-w-[180px] px-space-8 rounded-full active:scale-95 transition-all shadow-sm"
                     onClick={cancel}
                   >
-                    Cancel
+                    Cancel Search
                   </Button>
                 </div>
               )}

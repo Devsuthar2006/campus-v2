@@ -90,9 +90,9 @@ export default function WallPage() {
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Fixed Header & Filters Container */}
         <div className="w-full shrink-0 bg-background border-b border-divider z-10">
-          <div className="mx-auto max-w-2xl md:max-w-4xl px-space-4 py-space-4 flex flex-col gap-space-4">
-            {/* Minimalist Top Header */}
-            <div className="flex items-center justify-between gap-space-4 select-none shrink-0">
+          <div className="mx-auto max-w-2xl md:max-w-4xl px-space-4 py-2 md:py-space-4 flex flex-col gap-2 md:gap-space-4">
+            {/* Minimalist Top Header (Desktop only) */}
+            <div className="hidden md:flex items-center justify-between gap-space-4 select-none shrink-0">
               <h1 className="text-h2 font-bold font-display text-foreground">Campus Wall</h1>
               <Button
                 size="sm"
@@ -194,6 +194,16 @@ export default function WallPage() {
           </div>
         </div>
       </div>
+
+      {/* Mobile Floating Action Button (FAB) */}
+      <button
+        type="button"
+        onClick={() => setShowComposer(true)}
+        className="md:hidden fixed bottom-24 right-6 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-brand text-brand-foreground shadow-xl hover:scale-105 active:scale-95 transition-all border border-brand/20 animate-in fade-in zoom-in duration-200"
+        aria-label="New Post"
+      >
+        <Plus className="h-6 w-6 stroke-[2.5]" />
+      </button>
 
       {/* Composer Modal Overlay */}
       {showComposer && (

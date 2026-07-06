@@ -14,7 +14,7 @@ import { profileApi } from '../../lib/profile';
 import { Card, CardTitle, CardDescription } from '../../components/ui/Card';
 import { AppNav } from '../../components/AppNav';
 import { ThemeToggle } from '../../components/ThemeToggle';
-import { LogOut } from 'lucide-react';
+import { LogOut, HelpCircle } from 'lucide-react';
 
 /** Settings — privacy controls (UI_GUIDELINES.md §12; AUTH_SYSTEM.md §9). */
 export default function SettingsPage() {
@@ -248,6 +248,26 @@ export default function SettingsPage() {
                 </span>
               </div>
               <ThemeToggle />
+            </div>
+
+            <div className="border-t border-divider pt-space-4 flex items-center justify-between gap-space-4">
+              <div className="flex flex-col">
+                <span className="text-body text-foreground">Interactive App Tour</span>
+                <span className="text-caption text-muted-foreground">
+                  Take the onboarding tour again to learn features.
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  localStorage.removeItem('anonymousu:tour_completed');
+                  window.location.reload();
+                }}
+                className="flex items-center gap-2 h-9 px-4 rounded-xl border border-border hover:bg-muted/40 transition-colors text-caption font-semibold text-foreground"
+              >
+                <HelpCircle className="h-4 w-4 text-brand" />
+                <span>Replay Tour</span>
+              </button>
             </div>
           </Card>
 
