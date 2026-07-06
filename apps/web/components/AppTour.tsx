@@ -273,7 +273,7 @@ export function AppTour() {
   // Render Welcome Prompt Modal
   if (currentStepIndex === -1) {
     return (
-      <div className="fixed inset-0 bg-background/80 backdrop-blur-md z-[9999] flex items-center justify-center p-space-4 animate-in fade-in duration-300">
+      <div className="fixed inset-0 bg-background/60 z-[9999] flex items-center justify-center p-space-4 animate-in fade-in duration-300">
         <div className="bg-card border border-border/80 shadow-2xl rounded-2xl p-space-6 max-w-sm w-full flex flex-col gap-space-4 text-center select-none animate-in zoom-in-95 duration-200">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-brand/10 text-brand">
             <Sparkles className="h-7 w-7 animate-pulse" />
@@ -307,8 +307,8 @@ export function AppTour() {
 
   return (
     <div className="fixed inset-0 z-[9999] pointer-events-none select-none">
-      {/* Dimmed backdrop layer */}
-      <div className="absolute inset-0 bg-black/65 backdrop-blur-[1px] transition-all duration-300 pointer-events-auto" />
+      {/* Invisible pointer trap layer */}
+      <div className="absolute inset-0 transition-all duration-300 pointer-events-auto" />
       {/* Sliding Spotlight */}
       {spotlightCoords && (
         <div

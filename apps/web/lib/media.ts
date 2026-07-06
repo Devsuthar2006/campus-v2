@@ -12,12 +12,21 @@ import { apiFetch } from './apiClient';
  * then confirm. Downloads use short-lived, access-checked signed URLs.
  */
 export const mediaApi = {
-  /** Full upload: request signed URL → PUT bytes → confirm. Returns the ref. */
-  async upload(file: Blob, kind: MediaKind, durationMs?: number): Promise<MediaRef> {
+  async upload(
+    file: Blob,
+    kind: MediaKind,
+    options?: { durationMs?: number; isTemporary?: boolean },
+  ): Promise<MediaRef> {
     const mimeType = file.type || 'application/octet-stream';
     const { media, upload } = await apiFetch<UploadUrlResponse>('/media/upload-url', {
       method: 'POST',
-      body: JSON.stringify({ kind, mimeType, sizeBytes: file.size, durationMs }),
+      body: JSON.stringify({
+        kind,
+        mimeType,
+        sizeBytes: file.size,
+        durationMs: options?.durationMs,
+        isTemporary: options?.isTemporary,
+      }),
     });
 
     // Bytes go directly to (object) storage — never through the JSON API.

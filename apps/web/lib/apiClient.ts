@@ -40,32 +40,47 @@ async function rawFetch<T>(path: string, init: FetchOptions, token: string | nul
   return body.data;
 }
 
+let refreshPromise: Promise<boolean> | null = null;
+
 /** Attempts a one-time refresh-token rotation. Returns true on success. */
 async function tryRefresh(): Promise<boolean> {
-  const refreshToken = authStorage.getRefreshToken();
-  if (!refreshToken) {
-    console.debug('[auth] tryRefresh: no refresh token in storage');
-    return false;
+  if (refreshPromise) {
+    console.debug('[auth] tryRefresh: refresh already in progress, waiting for it...');
+    return refreshPromise;
   }
-  try {
-    console.debug('[auth] tryRefresh: attempting token refresh...');
-    const data = await rawFetch<AuthResponse>(
-      '/auth/refresh',
-      { method: 'POST', body: JSON.stringify({ refreshToken }) },
-      null,
-    );
-    authStorage.setTokens(data.tokens);
-    console.debug('[auth] tryRefresh: success, new access token stored');
-    return true;
-  } catch (err) {
-    console.debug('[auth] tryRefresh: failed', err);
-    // Only clear tokens if the server explicitly rejected the refresh token.
-    // Network errors / transient failures should NOT wipe stored credentials.
-    if (err instanceof ApiClientError) {
-      console.debug('[auth] tryRefresh: API rejected token, clearing storage');
-      authStorage.clear();
+
+  refreshPromise = (async () => {
+    const refreshToken = authStorage.getRefreshToken();
+    if (!refreshToken) {
+      console.debug('[auth] tryRefresh: no refresh token in storage');
+      return false;
     }
-    return false;
+    try {
+      console.debug('[auth] tryRefresh: attempting token refresh...');
+      const data = await rawFetch<AuthResponse>(
+        '/auth/refresh',
+        { method: 'POST', body: JSON.stringify({ refreshToken }) },
+        null,
+      );
+      authStorage.setTokens(data.tokens);
+      console.debug('[auth] tryRefresh: success, new access token stored');
+      return true;
+    } catch (err) {
+      console.debug('[auth] tryRefresh: failed', err);
+      // Only clear tokens if the server explicitly rejected the refresh token.
+      // Network errors / transient failures should NOT wipe stored credentials.
+      if (err instanceof ApiClientError) {
+        console.debug('[auth] tryRefresh: API rejected token, clearing storage');
+        authStorage.clear();
+      }
+      return false;
+    }
+  })();
+
+  try {
+    return await refreshPromise;
+  } finally {
+    refreshPromise = null;
   }
 }
 

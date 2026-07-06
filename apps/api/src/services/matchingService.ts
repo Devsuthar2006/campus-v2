@@ -61,15 +61,39 @@ class MatchingService {
     logger.info('Matching state recovered (cleared stale queue + active sessions)');
   }
 
+  /** Checks if the user is already in an active session and re-emits SESSION_STARTED if so. */
+  async checkSession(userId: string): Promise<boolean> {
+    const active = await matchingRepository.getActiveSessionForUser(userId);
+    if (!active) return false;
+
+    // We must identify the partner's user ID since active session rows store both A and B.
+    const partnerId = active.userAId === userId ? active.userBId : active.userAId;
+
+    // We intentionally import `toPublicUserSummary` or resolve it inline.
+    // However, profileRepository.getPublicProfile handles fetching basic info.
+    // Wait, matchingRepository doesn't fetch public info directly, so we use profileRepository.
+    const partnerProfile = await profileRepository.getProfile(partnerId);
+
+    this.emit(userId, MATCH_SERVER_EVENTS.SESSION_STARTED, {
+      sessionId: active.sessionId,
+      startedAt: active.startedAt.toISOString(),
+      partner: partnerProfile
+        ? {
+            id: partnerProfile.id,
+            name: partnerProfile.name,
+            avatarMediaId: partnerProfile.avatarMediaId,
+            gender: partnerProfile.gender,
+            bio: partnerProfile.bio,
+          }
+        : null,
+    });
+    return true;
+  }
+
   /** A user requests a match. Pairs synchronously if a partner is waiting. */
   async joinQueue(userId: string, universityId: string, genderPreference = 'all'): Promise<void> {
     // Already in an active session? Re-notify (reconnection) instead of queueing.
-    const active = await matchingRepository.getActiveSessionForUser(userId);
-    if (active) {
-      this.emit(userId, MATCH_SERVER_EVENTS.SESSION_STARTED, {
-        sessionId: active.sessionId,
-        startedAt: active.startedAt.toISOString(),
-      });
+    if (await this.checkSession(userId)) {
       return;
     }
 

@@ -65,7 +65,8 @@ class MediaService {
     }
 
     // Chat media is temporary by default; avatars/documents are persistent.
-    const isTemporary = input.kind !== 'avatar' && input.kind !== 'document';
+    // If input explicitly overrides isTemporary (e.g. Wall images are persistent), respect it.
+    const isTemporary = input.isTemporary ?? (input.kind !== 'avatar' && input.kind !== 'document');
     const storageKey = `${input.kind}/${randomUUID()}`;
 
     const media = await mediaRepository.createPending({

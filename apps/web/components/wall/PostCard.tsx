@@ -29,6 +29,7 @@ export function PostCard({
 }) {
   const [post, setPost] = useState<WallPost>(initial);
   const [reported, setReported] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const isMine = post.author?.id === selfId;
 
   const toggleReaction = async () => {
@@ -56,7 +57,7 @@ export function PostCard({
     setPost(updated);
   };
 
-  const remove = async () => {
+  const confirmDelete = async () => {
     await wallApi.deletePost(post.id);
     onDeleted?.(post.id);
   };
@@ -160,77 +161,96 @@ export function PostCard({
         </div>
       )}
 
-      <div className="flex items-center gap-space-1 border-t border-border pt-space-2">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => void toggleReaction()}
-          aria-label="Like"
-          className="hover:text-danger hover:bg-danger/10 rounded-full transition-all duration-200"
-        >
-          <Heart
-            className={cn(
-              'h-4 w-4 transition-transform active:scale-125',
-              post.myReaction && 'fill-danger text-danger',
-            )}
-          />
-          <span className="ml-space-1 text-small">{post.reactionCount}</span>
-        </Button>
-        {showReplyLink && (
-          <Link href={`/wall/${post.id}`}>
-            <Button
-              variant="ghost"
-              size="sm"
-              aria-label="Replies"
-              className="hover:text-brand hover:bg-brand/10 rounded-full transition-all duration-200"
-            >
-              <MessageCircle className="h-4 w-4" />
-              <span className="ml-space-1 text-small">{post.replyCount}</span>
+      {showDeleteConfirm ? (
+        <div className="flex items-center justify-between border-t border-border pt-space-3 mt-space-1">
+          <span className="text-small font-medium text-danger">Delete this post forever?</span>
+          <div className="flex gap-space-2">
+            <Button variant="ghost" size="sm" onClick={() => setShowDeleteConfirm(false)}>
+              Cancel
             </Button>
-          </Link>
-        )}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => void toggleBookmark()}
-          aria-label="Bookmark"
-          className="hover:text-brand hover:bg-brand/10 rounded-full transition-all duration-200"
-        >
-          <Bookmark
-            className={cn(
-              'h-4 w-4 transition-transform active:scale-125',
-              post.bookmarked && 'fill-foreground text-foreground',
-            )}
-          />
-        </Button>
-        <div className="ml-auto flex items-center gap-space-1">
-          {!reported && (
             <Button
-              variant="ghost"
+              variant="default"
+              className="bg-danger text-white hover:bg-danger/90"
               size="sm"
-              onClick={() => void report()}
-              aria-label="Report"
-              className="hover:text-warning hover:bg-warning/10 rounded-full transition-all duration-200"
+              onClick={() => void confirmDelete()}
             >
-              <Flag className="h-4 w-4" />
+              Delete
             </Button>
-          )}
-          {reported && (
-            <span className="text-small text-muted-foreground px-space-2">Reported</span>
-          )}
-          {isMine && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => void remove()}
-              aria-label="Delete"
-              className="hover:text-danger hover:bg-danger/10 rounded-full transition-all duration-200"
-            >
-              <Trash2 className="h-4 w-4 text-danger" />
-            </Button>
-          )}
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="flex items-center gap-space-1 border-t border-border pt-space-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => void toggleReaction()}
+            aria-label="Like"
+            className="hover:text-danger hover:bg-danger/10 rounded-full transition-all duration-200"
+          >
+            <Heart
+              className={cn(
+                'h-4 w-4 transition-transform active:scale-125',
+                post.myReaction && 'fill-danger text-danger',
+              )}
+            />
+            <span className="ml-space-1 text-small">{post.reactionCount}</span>
+          </Button>
+          {showReplyLink && (
+            <Link href={`/wall/${post.id}`}>
+              <Button
+                variant="ghost"
+                size="sm"
+                aria-label="Replies"
+                className="hover:text-brand hover:bg-brand/10 rounded-full transition-all duration-200"
+              >
+                <MessageCircle className="h-4 w-4" />
+                <span className="ml-space-1 text-small">{post.replyCount}</span>
+              </Button>
+            </Link>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => void toggleBookmark()}
+            aria-label="Bookmark"
+            className="hover:text-brand hover:bg-brand/10 rounded-full transition-all duration-200"
+          >
+            <Bookmark
+              className={cn(
+                'h-4 w-4 transition-transform active:scale-125',
+                post.bookmarked && 'fill-foreground text-foreground',
+              )}
+            />
+          </Button>
+          <div className="ml-auto flex items-center gap-space-1">
+            {!reported && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => void report()}
+                aria-label="Report"
+                className="hover:text-warning hover:bg-warning/10 rounded-full transition-all duration-200"
+              >
+                <Flag className="h-4 w-4" />
+              </Button>
+            )}
+            {reported && (
+              <span className="text-small text-muted-foreground px-space-2">Reported</span>
+            )}
+            {isMine && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowDeleteConfirm(true)}
+                aria-label="Delete"
+                className="hover:text-danger hover:bg-danger/10 rounded-full transition-all duration-200"
+              >
+                <Trash2 className="h-4 w-4 text-danger" />
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
     </Card>
   );
 }

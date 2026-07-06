@@ -207,19 +207,16 @@ export default function WallPage() {
 
       {/* Composer Modal Overlay */}
       {showComposer && (
-        <div className="fixed inset-0 bg-background/60 backdrop-blur-sm z-50 flex items-center justify-center p-space-4 animate-in fade-in duration-200">
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-space-4 animate-in fade-in duration-200">
           <div className="absolute inset-0" onClick={() => setShowComposer(false)} />
-
-          <div className="relative bg-card border border-border w-full max-w-lg rounded-2xl shadow-2xl p-space-6 flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <Composer
-              categories={categories}
-              onCreated={(post) => {
-                setPosts((prev) => (prev.some((p) => p.id === post.id) ? prev : [post, ...prev]));
-                setShowComposer(false);
-              }}
-              onClose={() => setShowComposer(false)}
-            />
-          </div>
+          <Composer
+            categories={categories}
+            onCreated={(post) => {
+              setPosts((prev) => (prev.some((p) => p.id === post.id) ? prev : [post, ...prev]));
+              setShowComposer(false);
+            }}
+            onClose={() => setShowComposer(false)}
+          />
         </div>
       )}
     </div>

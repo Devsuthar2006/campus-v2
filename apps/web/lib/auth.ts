@@ -18,33 +18,10 @@ export const authApi = {
     return data.user;
   },
 
-  /**
-   * Returns the current user, or null if not authenticated.
-   * On page refresh the in-memory access token is gone, so we explicitly
-   * exchange the persisted refresh token for a fresh session first.
-   */
   async me(): Promise<AuthUser | null> {
     const refreshToken = authStorage.getRefreshToken();
     if (!refreshToken) return null;
 
-    // If the access token is stale (always true after a page reload),
-    // exchange the refresh token for a fresh pair before calling /auth/me.
-    if (authStorage.isAccessTokenExpired()) {
-      try {
-        const data = await apiFetch<AuthResponse>('/auth/refresh', {
-          method: 'POST',
-          body: JSON.stringify({ refreshToken }),
-          skipAuth: true, // This endpoint doesn't require a Bearer token.
-        });
-        authStorage.setTokens(data.tokens);
-      } catch {
-        // If the refresh token itself is rejected, the session is truly gone.
-        authStorage.clear();
-        return null;
-      }
-    }
-
-    // Now we have a valid access token — fetch the user profile.
     try {
       const data = await apiFetch<{ user: AuthUser }>('/auth/me');
       return data.user;

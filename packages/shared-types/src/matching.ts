@@ -9,6 +9,7 @@ export const MATCH_CLIENT_EVENTS = {
   LEAVE_QUEUE: 'leave_queue',
   LEAVE_SESSION: 'leave_session',
   HEARTBEAT: 'heartbeat',
+  CHECK_SESSION: 'check_session',
 } as const;
 
 /** Server → client socket events (facts/notifications). */

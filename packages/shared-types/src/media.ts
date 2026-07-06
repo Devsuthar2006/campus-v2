@@ -60,6 +60,7 @@ export const UploadUrlRequestSchema = z.object({
   mimeType: z.string().min(1).max(128),
   sizeBytes: z.number().int().positive(),
   durationMs: z.number().int().positive().optional(),
+  isTemporary: z.boolean().optional(),
 });
 export type UploadUrlRequest = z.infer<typeof UploadUrlRequestSchema>;
 

@@ -58,6 +58,11 @@ export function createSocketServer(httpServer: HttpServer): SocketIOServer {
     if (universityId) void socket.join(`campus:${universityId}`);
     logger.info({ socketId: socket.id, userId }, 'Socket authenticated and connected');
 
+    // Auto-sync active match session on connect to handle page refreshes seamlessly
+    void matchingService.checkSession(userId).catch((err) => {
+      logger.error({ err, userId }, 'checkSession failed on connect');
+    });
+
     // --- Anonymous matching events (SOCKET_EVENTS.md §4) ---
     socket.on(MATCH_CLIENT_EVENTS.JOIN_QUEUE, (payload?: { genderPreference?: string }) => {
       const pref = payload?.genderPreference ?? 'all';
@@ -167,13 +172,17 @@ export function createSocketServer(httpServer: HttpServer): SocketIOServer {
 
     socket.on('disconnect', (reason) => {
       logger.info({ socketId: socket.id, userId, reason }, 'Socket disconnected');
-      // Only clean up matching state when the user's LAST socket disconnects.
-      const room = io.sockets.adapter.rooms.get(`user:${userId}`);
-      if (!room || room.size === 0) {
-        void matchingService.handleDisconnect(userId).catch((err) => {
-          logger.error({ err, userId }, 'disconnect cleanup failed');
-        });
-      }
+
+      // Add a grace period to handle page refreshes seamlessly
+      setTimeout(() => {
+        // Only clean up matching state when the user's LAST socket disconnects.
+        const room = io.sockets.adapter.rooms.get(`user:${userId}`);
+        if (!room || room.size === 0) {
+          void matchingService.handleDisconnect(userId).catch((err) => {
+            logger.error({ err, userId }, 'disconnect cleanup failed');
+          });
+        }
+      }, 5000); // 5-second grace period
     });
   });
 
