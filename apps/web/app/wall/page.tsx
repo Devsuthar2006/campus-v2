@@ -90,7 +90,7 @@ export default function WallPage() {
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Fixed Header & Filters Container */}
         <div className="w-full shrink-0 bg-background border-b border-divider z-10">
-          <div className="mx-auto max-w-2xl md:max-w-4xl px-space-4 py-2 md:py-space-4 flex flex-col gap-2 md:gap-space-4">
+          <div className="mx-auto max-w-xl px-space-4 py-2 md:py-space-4 flex flex-col gap-2 md:gap-space-4">
             {/* Minimalist Top Header (Desktop only) */}
             <div className="hidden md:flex items-center justify-between gap-space-4 select-none shrink-0">
               <h1 className="text-h2 font-bold font-display text-foreground">Campus Wall</h1>
@@ -164,11 +164,11 @@ export default function WallPage() {
           </div>
         </div>
 
-        {/* Scrollable Feed Container */}
-        <div className="flex-1 overflow-y-auto bg-background">
-          <div className="mx-auto max-w-2xl md:max-w-4xl px-0 md:px-space-4 py-space-5 pb-24 md:pb-8 flex flex-col gap-space-4">
+        {/* Scrollable Feed Container — single continuous column (Instagram-style) */}
+        <div className="flex-1 overflow-y-auto bg-background pb-24 md:pb-8">
+          <div className="mx-auto flex max-w-xl flex-col border-divider md:border-x">
             {posts.length === 0 && !loading && (
-              <p className="py-space-12 text-center text-caption text-muted-foreground px-space-4">
+              <p className="px-space-4 py-space-12 text-center text-caption text-muted-foreground">
                 Nothing here yet. Be the first to post.
               </p>
             )}
@@ -182,12 +182,12 @@ export default function WallPage() {
             ))}
 
             {mode === 'latest' && cursor && (
-              <div className="px-space-4 md:px-0 w-full">
+              <div className="p-space-4">
                 <Button
                   variant="secondary"
                   disabled={loading}
                   onClick={() => void load(false)}
-                  className="w-full mt-space-2 rounded-full py-2.5 active:scale-95 transition-all shadow-sm"
+                  className="w-full rounded-full py-2.5 transition-all active:scale-95"
                 >
                   {loading ? 'Loading…' : 'Load more'}
                 </Button>

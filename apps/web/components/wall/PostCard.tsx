@@ -3,18 +3,16 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import type { WallPost } from '@campusly/shared-types';
-import { Heart, MessageCircle, Bookmark, Flag, Trash2 } from 'lucide-react';
+import { Heart, MessageCircle, Bookmark, Flag, Trash2, MoreHorizontal } from 'lucide-react';
 import { wallApi } from '../../lib/wall';
 import { MediaAttachment } from '../MediaAttachment';
-import { Card } from '../ui/Card';
-import { Button } from '../ui/Button';
 import { Avatar } from '../Avatar';
 import { cn } from '../../lib/utils';
 
 /**
- * A single wall post (PUBLIC_WALL.md §6, UI_GUIDELINES.md §12): author/anonymous
- * header, body, media, poll, tags, and a supportive reaction bar (no clout
- * scores). Self-contained optimistic actions; reports content for moderation.
+ * A single wall post rendered as a continuous, Instagram-style feed item
+ * (PUBLIC_WALL.md §6): flush to the column with a divider between posts, an
+ * edge-to-edge media band, and a supportive action row (no clout scores).
  */
 export function PostCard({
   post: initial,
@@ -29,6 +27,7 @@ export function PostCard({
 }) {
   const [post, setPost] = useState<WallPost>(initial);
   const [reported, setReported] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const isMine = post.author?.id === selfId;
 
@@ -63,48 +62,95 @@ export function PostCard({
   };
 
   const report = async () => {
+    setMenuOpen(false);
     await wallApi.report(post.id, 'wall_post', post.id, 'other');
     setReported(true);
   };
 
   const totalVotes = post.poll?.reduce((s, o) => s + o.voteCount, 0) ?? 0;
+  const authorName = post.isAnonymous ? 'Anonymous' : (post.author?.name ?? 'Student');
 
   return (
-    <Card className="flex flex-col gap-space-3 hover:shadow-md transition-shadow rounded-none md:rounded-card border-x-0 md:border-x">
-      <div className="flex items-center justify-between gap-space-2 select-none">
+    <article className="border-b border-divider bg-background">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-space-2 px-space-4 py-space-3 select-none">
         <div className="flex items-center gap-space-3">
           <Avatar
             name={post.isAnonymous ? '?' : (post.author?.name ?? 'Student')}
             mediaId={post.isAnonymous ? null : (post.author?.avatarMediaId ?? null)}
             size="sm"
           />
-          <div className="flex flex-col">
+          <div className="flex flex-col leading-tight">
             <div className="flex items-center gap-space-2">
-              <span className="text-body font-semibold text-foreground">
-                {post.isAnonymous ? 'Anonymous' : (post.author?.name ?? 'Student')}
-              </span>
-              {post.category && (
-                <span className="rounded-tooltip bg-muted px-space-2 py-0.5 text-small text-muted-foreground">
-                  {post.category.name}
-                </span>
-              )}
+              <span className="text-body font-semibold text-foreground">{authorName}</span>
               {post.postType === 'announcement' && (
-                <span className="rounded-tooltip bg-brand px-space-2 py-0.5 text-small text-brand-foreground font-semibold">
+                <span className="rounded-tooltip bg-brand px-space-2 py-0.5 text-small font-semibold text-brand-foreground">
                   Announcement
                 </span>
               )}
             </div>
-            <time className="text-caption text-muted-foreground mt-0.5">
-              {new Date(post.createdAt).toLocaleDateString()}
-            </time>
+            <span className="flex items-center gap-space-1 text-caption text-muted-foreground">
+              {post.category && <span>{post.category.name}</span>}
+              {post.category && <span aria-hidden>·</span>}
+              <time>{new Date(post.createdAt).toLocaleDateString()}</time>
+            </span>
           </div>
+        </div>
+
+        {/* Overflow menu (report / delete) */}
+        <div className="relative">
+          <button
+            type="button"
+            aria-label="More options"
+            onClick={() => setMenuOpen((v) => !v)}
+            className="rounded-full p-space-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <MoreHorizontal className="h-5 w-5" />
+          </button>
+          {menuOpen && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} aria-hidden />
+              <div className="absolute right-0 top-full z-20 mt-space-1 w-40 overflow-hidden rounded-card border border-border bg-surface shadow-lg">
+                {!reported && !isMine && (
+                  <button
+                    onClick={() => void report()}
+                    className="flex w-full items-center gap-space-2 px-space-3 py-space-2 text-left text-caption text-foreground hover:bg-muted"
+                  >
+                    <Flag className="h-4 w-4" /> Report
+                  </button>
+                )}
+                {isMine && (
+                  <button
+                    onClick={() => {
+                      setMenuOpen(false);
+                      setShowDeleteConfirm(true);
+                    }}
+                    className="flex w-full items-center gap-space-2 px-space-3 py-space-2 text-left text-caption text-danger hover:bg-danger/10"
+                  >
+                    <Trash2 className="h-4 w-4" /> Delete
+                  </button>
+                )}
+                {reported && (
+                  <span className="block px-space-3 py-space-2 text-caption text-muted-foreground">
+                    Reported
+                  </span>
+                )}
+              </div>
+            </>
+          )}
         </div>
       </div>
 
-      {post.body && <p className="whitespace-pre-wrap text-body text-foreground">{post.body}</p>}
+      {/* Body */}
+      {post.body && (
+        <p className="whitespace-pre-wrap px-space-4 pb-space-3 text-body text-foreground">
+          {post.body}
+        </p>
+      )}
 
+      {/* Media — edge to edge */}
       {post.mediaIds.length > 0 && (
-        <div className="-mx-space-5 border-y border-border/40 flex flex-col bg-muted/5 overflow-hidden">
+        <div className="flex flex-col bg-black/5">
           {post.mediaIds.map((mediaId) => (
             <MediaAttachment
               key={mediaId}
@@ -121,8 +167,9 @@ export function PostCard({
         </div>
       )}
 
+      {/* Poll */}
       {post.poll && (
-        <div className="flex flex-col gap-space-2">
+        <div className="flex flex-col gap-space-2 px-space-4 pt-space-3">
           {post.poll.map((opt) => {
             const pct = totalVotes ? Math.round((opt.voteCount / totalVotes) * 100) : 0;
             const mine = post.myVoteOptionId === opt.id;
@@ -151,8 +198,9 @@ export function PostCard({
         </div>
       )}
 
+      {/* Tags */}
       {post.tags.length > 0 && (
-        <div className="flex flex-wrap gap-space-1">
+        <div className="flex flex-wrap gap-space-1 px-space-4 pt-space-2">
           {post.tags.map((t) => (
             <span key={t} className="text-small text-brand">
               #{t}
@@ -161,96 +209,74 @@ export function PostCard({
         </div>
       )}
 
-      {showDeleteConfirm ? (
-        <div className="flex items-center justify-between border-t border-border pt-space-3 mt-space-1">
+      {/* Actions */}
+      <div className="flex items-center gap-space-4 px-space-4 py-space-2">
+        <button
+          type="button"
+          onClick={() => void toggleReaction()}
+          aria-label="Like"
+          className="flex items-center gap-space-1 text-foreground transition-colors hover:text-danger"
+        >
+          <Heart
+            className={cn(
+              'h-6 w-6 transition-transform active:scale-125',
+              post.myReaction && 'fill-danger text-danger',
+            )}
+          />
+        </button>
+        {showReplyLink && (
+          <Link
+            href={`/wall/${post.id}`}
+            aria-label="Replies"
+            className="flex items-center gap-space-1 text-foreground transition-colors hover:text-brand"
+          >
+            <MessageCircle className="h-6 w-6" />
+          </Link>
+        )}
+        <button
+          type="button"
+          onClick={() => void toggleBookmark()}
+          aria-label="Bookmark"
+          className="ml-auto text-foreground transition-colors hover:text-brand"
+        >
+          <Bookmark
+            className={cn('h-6 w-6', post.bookmarked && 'fill-foreground text-foreground')}
+          />
+        </button>
+      </div>
+
+      {/* Counts */}
+      <div className="flex items-center gap-space-3 px-space-4 pb-space-3 text-caption text-muted-foreground">
+        <span className="font-medium text-foreground">
+          {post.reactionCount} {post.reactionCount === 1 ? 'like' : 'likes'}
+        </span>
+        {post.replyCount > 0 && (
+          <Link href={`/wall/${post.id}`} className="hover:text-foreground">
+            {post.replyCount} {post.replyCount === 1 ? 'reply' : 'replies'}
+          </Link>
+        )}
+      </div>
+
+      {/* Delete confirmation */}
+      {showDeleteConfirm && (
+        <div className="flex items-center justify-between gap-space-2 border-t border-divider px-space-4 py-space-3">
           <span className="text-small font-medium text-danger">Delete this post forever?</span>
           <div className="flex gap-space-2">
-            <Button variant="ghost" size="sm" onClick={() => setShowDeleteConfirm(false)}>
+            <button
+              onClick={() => setShowDeleteConfirm(false)}
+              className="rounded-button px-space-3 py-space-1 text-small text-muted-foreground hover:bg-muted"
+            >
               Cancel
-            </Button>
-            <Button
-              variant="primary"
-              className="bg-danger text-white hover:bg-danger/90"
-              size="sm"
+            </button>
+            <button
               onClick={() => void confirmDelete()}
+              className="rounded-button bg-danger px-space-3 py-space-1 text-small font-semibold text-white hover:bg-danger/90"
             >
               Delete
-            </Button>
-          </div>
-        </div>
-      ) : (
-        <div className="flex items-center gap-space-1 border-t border-border pt-space-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => void toggleReaction()}
-            aria-label="Like"
-            className="hover:text-danger hover:bg-danger/10 rounded-full transition-all duration-200"
-          >
-            <Heart
-              className={cn(
-                'h-4 w-4 transition-transform active:scale-125',
-                post.myReaction && 'fill-danger text-danger',
-              )}
-            />
-            <span className="ml-space-1 text-small">{post.reactionCount}</span>
-          </Button>
-          {showReplyLink && (
-            <Link href={`/wall/${post.id}`}>
-              <Button
-                variant="ghost"
-                size="sm"
-                aria-label="Replies"
-                className="hover:text-brand hover:bg-brand/10 rounded-full transition-all duration-200"
-              >
-                <MessageCircle className="h-4 w-4" />
-                <span className="ml-space-1 text-small">{post.replyCount}</span>
-              </Button>
-            </Link>
-          )}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => void toggleBookmark()}
-            aria-label="Bookmark"
-            className="hover:text-brand hover:bg-brand/10 rounded-full transition-all duration-200"
-          >
-            <Bookmark
-              className={cn(
-                'h-4 w-4 transition-transform active:scale-125',
-                post.bookmarked && 'fill-foreground text-foreground',
-              )}
-            />
-          </Button>
-          <div className="ml-auto flex items-center gap-space-1">
-            {!reported && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => void report()}
-                aria-label="Report"
-                className="hover:text-warning hover:bg-warning/10 rounded-full transition-all duration-200"
-              >
-                <Flag className="h-4 w-4" />
-              </Button>
-            )}
-            {reported && (
-              <span className="text-small text-muted-foreground px-space-2">Reported</span>
-            )}
-            {isMine && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowDeleteConfirm(true)}
-                aria-label="Delete"
-                className="hover:text-danger hover:bg-danger/10 rounded-full transition-all duration-200"
-              >
-                <Trash2 className="h-4 w-4 text-danger" />
-              </Button>
-            )}
+            </button>
           </div>
         </div>
       )}
-    </Card>
+    </article>
   );
 }
