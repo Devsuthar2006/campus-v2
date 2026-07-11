@@ -71,9 +71,9 @@ export function PostCard({
   const authorName = post.isAnonymous ? 'Anonymous' : (post.author?.name ?? 'Student');
 
   return (
-    <article className="border-b border-divider bg-background">
+    <article className="bg-background">
       {/* Header */}
-      <div className="flex items-center justify-between gap-space-2 px-space-4 py-space-3 select-none">
+      <div className="flex items-center justify-between gap-space-2 px-space-4 pt-space-4 pb-space-3 select-none">
         <div className="flex items-center gap-space-3">
           <Avatar
             name={post.isAnonymous ? '?' : (post.author?.name ?? 'Student')}
@@ -210,7 +210,7 @@ export function PostCard({
       )}
 
       {/* Actions */}
-      <div className="flex items-center gap-space-4 px-space-4 py-space-2">
+      <div className="flex items-center gap-space-5 px-space-4 pt-space-3 pb-space-1">
         <button
           type="button"
           onClick={() => void toggleReaction()}
@@ -246,7 +246,7 @@ export function PostCard({
       </div>
 
       {/* Counts */}
-      <div className="flex items-center gap-space-3 px-space-4 pb-space-3 text-caption text-muted-foreground">
+      <div className="flex items-center gap-space-3 px-space-4 pb-space-4 text-caption text-muted-foreground">
         <span className="font-medium text-foreground">
           {post.reactionCount} {post.reactionCount === 1 ? 'like' : 'likes'}
         </span>

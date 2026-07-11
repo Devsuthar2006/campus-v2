@@ -9,6 +9,7 @@ import { connectSocket, getSocket } from '../../lib/socket';
 import { AppNav } from '../../components/AppNav';
 import { Composer } from '../../components/wall/Composer';
 import { PostCard } from '../../components/wall/PostCard';
+import { FeedSkeleton } from '../../components/wall/PostSkeleton';
 import { Button } from '../../components/ui/Button';
 import { Plus, Flame, Clock } from 'lucide-react';
 import { cn } from '../../lib/utils';
@@ -164,14 +165,21 @@ export default function WallPage() {
           </div>
         </div>
 
-        {/* Scrollable Feed Container — single continuous column (Instagram-style) */}
-        <div className="flex-1 overflow-y-auto bg-background pb-24 md:pb-8">
-          <div className="mx-auto flex max-w-xl flex-col border-divider md:border-x">
-            {posts.length === 0 && !loading && (
-              <p className="px-space-4 py-space-12 text-center text-caption text-muted-foreground">
-                Nothing here yet. Be the first to post.
-              </p>
+        {/* Scrollable Feed — full-width posts with a fixed gap between them */}
+        <div className="flex-1 overflow-y-auto bg-muted/30 pb-24 md:pb-8">
+          <div className="mx-auto flex max-w-xl flex-col gap-space-2 py-space-2">
+            {/* First-load skeleton (Instagram/Facebook-style shimmer) */}
+            {loading && posts.length === 0 && <FeedSkeleton count={4} />}
+
+            {!loading && posts.length === 0 && (
+              <div className="bg-background px-space-4 py-space-16 text-center">
+                <p className="text-body font-medium text-foreground">Nothing here yet</p>
+                <p className="mt-space-1 text-caption text-muted-foreground">
+                  Be the first to post on your campus wall.
+                </p>
+              </div>
             )}
+
             {posts.map((post) => (
               <PostCard
                 key={post.id}
@@ -181,15 +189,17 @@ export default function WallPage() {
               />
             ))}
 
-            {mode === 'latest' && cursor && (
-              <div className="p-space-4">
+            {/* Loading more (skeleton tail) */}
+            {loading && posts.length > 0 && <FeedSkeleton count={2} />}
+
+            {mode === 'latest' && cursor && !loading && (
+              <div className="bg-background p-space-4">
                 <Button
                   variant="secondary"
-                  disabled={loading}
                   onClick={() => void load(false)}
                   className="w-full rounded-full py-2.5 transition-all active:scale-95"
                 >
-                  {loading ? 'Loading…' : 'Load more'}
+                  Load more
                 </Button>
               </div>
             )}
