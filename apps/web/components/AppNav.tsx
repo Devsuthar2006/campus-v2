@@ -3,9 +3,10 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from './AuthProvider';
-import { Building2, Zap, Users, User, Settings, ShieldAlert, Search } from 'lucide-react';
+import { Building2, Zap, Users, User, Settings, ShieldAlert, Search, Bell } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { BrandLogo } from './BrandLogo';
+import { useNotifications } from '../hooks/useNotifications';
 
 /**
  * Premium, fully responsive navigation with Apple-style glassmorphism.
@@ -15,6 +16,7 @@ import { BrandLogo } from './BrandLogo';
 export function AppNav() {
   const { user } = useAuth();
   const pathname = usePathname();
+  const { unreadCount } = useNotifications();
 
   const isStaff =
     user !== null &&
@@ -93,6 +95,24 @@ export function AppNav() {
             aria-label="Search"
           >
             <Search className="h-4 w-4" />
+          </Link>
+          <Link
+            href="/notifications"
+            id="nav-notifications"
+            className={cn(
+              'relative flex h-9 w-9 items-center justify-center rounded-button border border-transparent transition-all',
+              pathname === '/notifications'
+                ? 'text-brand bg-brand/10 border-brand/20 shadow-[0_2px_8px_rgba(255,153,0,0.12)]'
+                : 'text-muted-foreground hover:text-foreground hover:bg-foreground/5 hover:border-border/60',
+            )}
+            aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'}
+          >
+            <Bell className="h-4 w-4" />
+            {unreadCount > 0 && (
+              <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand px-1 text-[10px] font-semibold leading-none text-brand-foreground">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
           </Link>
         </div>
       </header>

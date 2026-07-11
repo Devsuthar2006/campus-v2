@@ -17,6 +17,7 @@ import { userRepository } from '../repositories/userRepository.js';
 import { mediaRepository } from '../repositories/mediaRepository.js';
 import { reportRepository } from '../repositories/reportRepository.js';
 import { notifier } from '../realtime/notifier.js';
+import { notificationService } from './notificationService.js';
 
 /**
  * Campus Wall business logic (PUBLIC_WALL.md). Campus-scoped, accountable
@@ -178,7 +179,7 @@ export const wallService = {
     postId: string,
     input: CreateReplyInput,
   ): Promise<WallReply> {
-    await this.requireVisiblePost(postId, claims.universityId);
+    const post = await this.requireVisiblePost(postId, claims.universityId);
     const row = await wallRepository.insertReply({
       postId,
       authorId: claims.sub,
@@ -193,6 +194,9 @@ export const wallService = {
       postId,
       reply: publicReply,
     });
+    // Notify the post author (anonymous replies stay anonymous).
+    const replierName = input.isAnonymous ? 'Someone' : await this.displayName(claims.sub);
+    void notificationService.wallReply(post.authorId, claims.sub, replierName, postId);
     return reply;
   },
 
@@ -219,6 +223,18 @@ export const wallService = {
       targetId,
       count,
     });
+    // Notify the post author when someone reacts to their post.
+    if (targetType === 'wall_post') {
+      const post = await wallRepository.getPostById(targetId);
+      if (post && post.authorId !== claims.sub) {
+        void notificationService.wallReaction(
+          post.authorId,
+          claims.sub,
+          await this.displayName(claims.sub),
+          targetId,
+        );
+      }
+    }
     return { count };
   },
 
@@ -300,6 +316,12 @@ export const wallService = {
   },
 
   // --- internal ---
+
+  /** Resolve a user's public display name (fallback used for notifications). */
+  async displayName(userId: string): Promise<string> {
+    const summaries = await userRepository.getPublicSummaries([userId]);
+    return summaries.get(userId)?.name ?? 'Someone';
+  },
 
   async requireVisiblePost(postId: string, universityId: string): Promise<WallPostRow> {
     const row = await wallRepository.getPostById(postId);

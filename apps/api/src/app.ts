@@ -16,6 +16,7 @@ import { mediaRouter } from './http/media.routes.js';
 import { localMediaRouter } from './http/localMedia.routes.js';
 import { wallRouter } from './http/wall.routes.js';
 import { communityRouter } from './http/community.routes.js';
+import { notificationRouter } from './http/notification.routes.js';
 import { adminRouter, appealRouter } from './http/admin.routes.js';
 
 /** API version prefix (API_SPEC.md §2.1). */
@@ -70,6 +71,7 @@ export function createApp(): Express {
   app.use(API_PREFIX, mediaRouter);
   app.use(API_PREFIX, wallRouter);
   app.use(API_PREFIX, communityRouter);
+  app.use(API_PREFIX, notificationRouter);
   app.use(API_PREFIX, adminRouter);
   app.use(API_PREFIX, appealRouter);
 

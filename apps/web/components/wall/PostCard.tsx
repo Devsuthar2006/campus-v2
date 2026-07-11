@@ -29,7 +29,14 @@ export function PostCard({
   const [reported, setReported] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const isMine = post.author?.id === selfId;
+
+  // Long posts are clamped in the feed with an inline "more" toggle (Twitter/Reddit style).
+  const BODY_LIMIT = 280;
+  const isLong = (post.body?.length ?? 0) > BODY_LIMIT;
+  const shownBody =
+    post.body && isLong && !expanded ? post.body.slice(0, BODY_LIMIT).trimEnd() : post.body;
 
   const toggleReaction = async () => {
     if (post.myReaction) {
@@ -144,7 +151,31 @@ export function PostCard({
       {/* Body */}
       {post.body && (
         <p className="whitespace-pre-wrap px-space-4 pb-space-3 text-body text-foreground">
-          {post.body}
+          {shownBody}
+          {isLong && !expanded && (
+            <>
+              {'… '}
+              <button
+                type="button"
+                onClick={() => setExpanded(true)}
+                className="font-medium text-muted-foreground hover:text-foreground"
+              >
+                more
+              </button>
+            </>
+          )}
+          {isLong && expanded && (
+            <>
+              {' '}
+              <button
+                type="button"
+                onClick={() => setExpanded(false)}
+                className="font-medium text-muted-foreground hover:text-foreground"
+              >
+                less
+              </button>
+            </>
+          )}
         </p>
       )}
 

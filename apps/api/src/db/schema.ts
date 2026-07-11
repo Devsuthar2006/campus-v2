@@ -1264,3 +1264,47 @@ export type ModerationAppealRow = typeof moderationAppeals.$inferSelect;
 export type AuditLogRow = typeof auditLogs.$inferSelect;
 export type FeatureFlagRow = typeof featureFlags.$inferSelect;
 export type AnnouncementRow = typeof announcements.$inferSelect;
+
+// ---------------------------------------------------------------------------
+// Notifications module (DATABASE_SCHEMA.md §16.1) — in-app notifications.
+// Domain events persist a notification and push it live over the socket.
+// ---------------------------------------------------------------------------
+
+export const notificationTypeEnum = pgEnum('notification_type', [
+  'friend_request',
+  'friend_accepted',
+  'match',
+  'message',
+  'wall_reply',
+  'wall_reaction',
+  'community',
+  'announcement',
+  'moderation',
+  'system',
+]);
+
+/** notifications (§16.1) — a user-facing in-app notification. */
+export const notifications = pgTable(
+  'notifications',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    type: notificationTypeEnum('type').notNull(),
+    title: text('title').notNull(),
+    body: text('body'),
+    data: jsonb('data'),
+    isRead: boolean('is_read').notNull().default(false),
+    readAt: timestamp('read_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    userCreatedIdx: index('idx_notifications_user_created').on(t.userId, t.createdAt),
+    unreadIdx: index('idx_notifications_unread')
+      .on(t.userId)
+      .where(sql`is_read = false`),
+  }),
+);
+
+export type NotificationRow = typeof notifications.$inferSelect;
