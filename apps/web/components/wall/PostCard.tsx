@@ -16,11 +16,11 @@ import { cn } from '../../lib/utils';
  */
 export function PostCard({
   post: initial,
-  selfId,
   onDeleted,
   showReplyLink = true,
 }: {
   post: WallPost;
+  /** Retained for API compatibility; ownership is now derived from `post.mine`. */
   selfId: string;
   onDeleted?: (id: string) => void;
   showReplyLink?: boolean;
@@ -30,7 +30,7 @@ export function PostCard({
   const [menuOpen, setMenuOpen] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [expanded, setExpanded] = useState(false);
-  const isMine = post.author?.id === selfId;
+  const isMine = post.mine;
 
   // Long posts are clamped in the feed with an inline "more" toggle (Twitter/Reddit style).
   const BODY_LIMIT = 280;
@@ -75,18 +75,14 @@ export function PostCard({
   };
 
   const totalVotes = post.poll?.reduce((s, o) => s + o.voteCount, 0) ?? 0;
-  const authorName = post.isAnonymous ? 'Anonymous' : (post.author?.name ?? 'Student');
+  const authorName = post.authorHandle;
 
   return (
     <article className="bg-background">
       {/* Header */}
       <div className="flex items-center justify-between gap-space-2 px-space-4 pt-space-4 pb-space-3 select-none">
         <div className="flex items-center gap-space-3">
-          <Avatar
-            name={post.isAnonymous ? '?' : (post.author?.name ?? 'Student')}
-            mediaId={post.isAnonymous ? null : (post.author?.avatarMediaId ?? null)}
-            size="sm"
-          />
+          <Avatar name={post.authorHandle} mediaId={null} size="sm" />
           <div className="flex flex-col leading-tight">
             <div className="flex items-center gap-space-2">
               <span className="text-body font-semibold text-foreground">{authorName}</span>

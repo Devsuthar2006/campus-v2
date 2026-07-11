@@ -9,6 +9,7 @@ import { connectSocket, getSocket } from '../../lib/socket';
 import { AppNav } from '../../components/AppNav';
 import { Composer } from '../../components/wall/Composer';
 import { PostCard } from '../../components/wall/PostCard';
+import { AnnouncementBanner } from '../../components/wall/AnnouncementBanner';
 import { FeedSkeleton } from '../../components/wall/PostSkeleton';
 import { Button } from '../../components/ui/Button';
 import { Plus, SlidersHorizontal, ChevronDown, Check } from 'lucide-react';
@@ -242,6 +243,9 @@ export default function WallPage() {
         {/* Scrollable Feed — full-width posts with a fixed gap between them */}
         <div className="flex-1 overflow-y-auto bg-muted/30 pb-24 md:pb-8">
           <div className="mx-auto flex max-w-xl flex-col gap-space-2 py-space-2">
+            {/* Admin announcements (dismissible, live via socket) */}
+            <AnnouncementBanner />
+
             {/* First-load skeleton (Instagram/Facebook-style shimmer) */}
             {loading && posts.length === 0 && <FeedSkeleton count={4} />}
 

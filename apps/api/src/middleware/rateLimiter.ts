@@ -61,3 +61,12 @@ export const friendRequestRateLimiter = makeLimiter({ windowMs: 60_000, limit: 2
 
 /** Report submissions — per user (prevents report flooding). */
 export const reportRateLimiter = makeLimiter({ windowMs: 60_000, limit: 15, perUser: true });
+
+/**
+ * Admin-surface requests — per operator (keyed by verified subject; use AFTER
+ * requireAuth). A higher bound than write/report limiters since privileged
+ * consoles are chatty (dashboards, lists, drilldowns), but still bounded so a
+ * single compromised/abusive admin session can't hammer the API. Returns the
+ * same 429 envelope as the other limiters (ADMIN_PANEL.md §13, SECURITY.md §16).
+ */
+export const adminRateLimiter = makeLimiter({ windowMs: 60_000, limit: 120, perUser: true });
