@@ -5,6 +5,8 @@ import { matchingRepository } from '../repositories/matchingRepository.js';
 import { friendRepository } from '../repositories/friendRepository.js';
 import { profileRepository } from '../repositories/profileRepository.js';
 import { userRepository } from '../repositories/userRepository.js';
+import { reportRepository } from '../repositories/reportRepository.js';
+import { dataInspectorRepository } from '../repositories/dataInspectorRepository.js';
 
 /**
  * Anonymous matching engine (MATCHING_ENGINE.md, ARCHITECTURE.md §5).
@@ -67,29 +69,9 @@ class MatchingService {
     const active = await matchingRepository.getActiveSessionForUser(userId);
     if (!active) return false;
 
-    // We must identify the partner's user ID since active session rows store both A and B.
-    const participants = await matchingRepository.getParticipants(active.sessionId);
-    const partnerId = participants.find((id) => id !== userId);
-    if (!partnerId) return false;
-
-    // We intentionally import `toPublicUserSummary` or resolve it inline.
-    // However, profileRepository.getProfile handles fetching basic info.
-    const partnerProfile = await profileRepository.getProfile(partnerId);
-    const partnerUser = await userRepository.findById(partnerId);
-
     this.emit(userId, MATCH_SERVER_EVENTS.SESSION_STARTED, {
       sessionId: active.sessionId,
       startedAt: active.startedAt.toISOString(),
-      partner:
-        partnerProfile && partnerUser
-          ? {
-              id: partnerProfile.userId,
-              name: partnerUser.name,
-              avatarMediaId: partnerProfile.avatarMediaId,
-              gender: partnerProfile.gender,
-              bio: partnerProfile.bio,
-            }
-          : null,
     });
     return true;
   }
@@ -140,6 +122,7 @@ class MatchingService {
     try {
       const session = await matchingRepository.createSession(universityId, userId, partnerId);
       const payload = { sessionId: session.id };
+
       const started = { sessionId: session.id, startedAt: session.startedAt.toISOString() };
       for (const uid of [userId, partnerId]) {
         this.emit(uid, MATCH_SERVER_EVENTS.MATCH_FOUND, payload);
@@ -170,11 +153,12 @@ class MatchingService {
     userGender: string,
     genderPreference: string,
   ): Promise<string | null> {
-    // Oldest-first candidates on the same campus (broadly FIFO fairness).
+    // Oldest-first candidates (broadly FIFO fairness).
+    // Universal mode: no campus filter — cross-campus matching enabled.
+    // Campus-scoping will be re-added as a premium feature.
     const candidates: { id: string; enqueuedAt: number }[] = [];
     for (const [id, entry] of this.waiting) {
       if (id === userId) continue;
-      if (entry.universityId !== universityId) continue;
 
       // Symmetric gender matching:
       // 1. Does the candidate's gender match the enqueuer's preference?
@@ -254,10 +238,46 @@ class MatchingService {
   ): Promise<void> {
     const isParticipant = await matchingRepository.isParticipant(sessionId, reporterId);
     if (!isParticipant) return;
+
     logger.warn(
       { event: 'match_report', sessionId, reporterId, reason, details },
       'Anonymous session reported',
     );
+
+    // 1. Resolve the reported match partner (targetId) from the session participants
+    const participants = await matchingRepository.getParticipants(sessionId);
+    const targetId = participants.find((id) => id !== reporterId);
+    if (!targetId) {
+      logger.error({ sessionId, reporterId }, 'No target match partner found for report');
+      await this.endSession(sessionId, 'reported');
+      return;
+    }
+
+    // 2. Capture the conversation transcript BEFORE ending/purging the session
+    const transcript = await dataInspectorRepository.readConversationWindow({
+      contextType: 'anon_session',
+      conversationId: sessionId,
+      limit: 50,
+    });
+
+    // 3. Serialize the transcript into the details field as JSON
+    const reportDetails = JSON.stringify({
+      userDetails: details ?? null,
+      source: 'anon_chat',
+      sessionId,
+      transcript,
+    });
+
+    // 4. Persist the report
+    await reportRepository.create({
+      reporterId,
+      targetType: 'user',
+      targetId,
+      reason: reason as any,
+      details: reportDetails,
+    });
+
+    // 5. Terminate the session
     await this.endSession(sessionId, 'reported');
   }
 

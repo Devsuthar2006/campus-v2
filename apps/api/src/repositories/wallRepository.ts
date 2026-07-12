@@ -28,13 +28,10 @@ type ReactionTargetType = 'wall_post' | 'wall_reply';
 
 export const wallRepository = {
   // --- Categories ---
-  async listCategories(universityId: string): Promise<WallCategoryRow[]> {
-    return db
-      .select()
-      .from(wallCategories)
-      .where(
-        or(isNull(wallCategories.universityId), eq(wallCategories.universityId, universityId)),
-      );
+  async listCategories(_universityId?: string): Promise<WallCategoryRow[]> {
+    // Universal mode: return all categories (global + any campus-specific).
+    // Campus-scoping will be re-added as a premium feature.
+    return db.select().from(wallCategories);
   },
 
   async ensureGlobalCategories(defaults: { name: string; slug: string }[]): Promise<void> {
@@ -98,18 +95,15 @@ export const wallRepository = {
       .where(eq(wallPosts.id, id));
   },
 
-  /** Campus feed, latest-first, cursor on created_at (§10 primary read). */
+  /** Global feed, latest-first, cursor on created_at (§10 primary read). */
   async feedLatest(input: {
-    universityId: string;
+    universityId?: string;
     categoryId?: string;
     cursor?: string;
     limit: number;
   }): Promise<WallPostRow[]> {
-    const conditions = [
-      eq(wallPosts.universityId, input.universityId),
-      eq(wallPosts.status, 'visible'),
-      isNull(wallPosts.deletedAt),
-    ];
+    // Universal mode: no campus filter. Campus-scoping will be a premium feature.
+    const conditions = [eq(wallPosts.status, 'visible'), isNull(wallPosts.deletedAt)];
     if (input.categoryId) conditions.push(eq(wallPosts.categoryId, input.categoryId));
     if (input.cursor) conditions.push(lt(wallPosts.createdAt, new Date(input.cursor)));
     return db
@@ -121,32 +115,27 @@ export const wallRepository = {
   },
 
   /** Trending feed via the materialized trending_posts table (§10.8). */
-  async feedTrending(input: { universityId: string; limit: number }): Promise<WallPostRow[]> {
+  async feedTrending(input: { universityId?: string; limit: number }): Promise<WallPostRow[]> {
+    // Universal mode: no campus filter on trending. Campus-scoping is a premium feature.
     const rows = await db
       .select({ post: wallPosts })
       .from(trendingPosts)
       .innerJoin(wallPosts, eq(wallPosts.id, trendingPosts.postId))
-      .where(
-        and(
-          eq(trendingPosts.universityId, input.universityId),
-          eq(wallPosts.status, 'visible'),
-          isNull(wallPosts.deletedAt),
-        ),
-      )
+      .where(and(eq(wallPosts.status, 'visible'), isNull(wallPosts.deletedAt)))
       .orderBy(desc(trendingPosts.score))
       .limit(input.limit);
     return rows.map((r) => r.post);
   },
 
-  /** Full-text search over post bodies, campus-scoped (§10 / FTS index). */
+  /** Full-text search over post bodies (§10 / FTS index). */
   async search(input: {
-    universityId: string;
+    universityId?: string;
     query: string;
     cursor?: string;
     limit: number;
   }): Promise<WallPostRow[]> {
+    // Universal mode: no campus filter on search. Campus-scoping is a premium feature.
     const conditions = [
-      eq(wallPosts.universityId, input.universityId),
       eq(wallPosts.status, 'visible'),
       isNull(wallPosts.deletedAt),
       sql`to_tsvector('english', coalesce(${wallPosts.body}, '')) @@ plainto_tsquery('english', ${input.query})`,

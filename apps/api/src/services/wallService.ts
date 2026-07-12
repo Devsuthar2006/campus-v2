@@ -33,8 +33,10 @@ const ANNOUNCEMENT_ROLES = [
   'super_admin',
 ];
 
-function campusRoom(universityId: string): string {
-  return `campus:${universityId}`;
+function campusRoom(_universityId: string): string {
+  // Universal mode: broadcast to all connected users, not just same campus.
+  // When premium campus-only feature is added, this will revert to per-campus rooms.
+  return 'campus:global';
 }
 
 export const wallService = {
@@ -50,7 +52,7 @@ export const wallService = {
     }
     if (input.categoryId) {
       const category = await wallRepository.getCategory(input.categoryId);
-      if (!category || (category.universityId && category.universityId !== claims.universityId)) {
+      if (!category) {
         throw new ValidationError('Invalid category.');
       }
     }
@@ -323,11 +325,11 @@ export const wallService = {
 
   // --- internal ---
 
-  async requireVisiblePost(postId: string, universityId: string): Promise<WallPostRow> {
+  async requireVisiblePost(postId: string, _universityId?: string): Promise<WallPostRow> {
     const row = await wallRepository.getPostById(postId);
     if (!row || row.deletedAt || row.status !== 'visible')
       throw new NotFoundError('Post not found.');
-    if (row.universityId !== universityId) throw new NotFoundError('Post not found.'); // campus scope
+    // Universal mode: no campus scope check. Will be re-added for premium.
     return row;
   },
 

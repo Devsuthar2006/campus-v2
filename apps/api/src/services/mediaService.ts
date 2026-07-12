@@ -155,10 +155,11 @@ class MediaService {
       }
     }
 
-    // Wall media: check if the media is attached to a wall post from the user's university.
+    // Wall media: check if the media is attached to any wall post.
+    // Universal mode: return true regardless of university. Campus-scoping is a premium feature.
     const universityIds = await mediaRepository.universityIdsForMedia(media.id);
     if (universityIds.length > 0) {
-      return universityIds.includes(claims.universityId);
+      return true;
     }
 
     return false;

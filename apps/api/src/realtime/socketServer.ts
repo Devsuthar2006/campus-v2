@@ -54,7 +54,9 @@ export function createSocketServer(httpServer: HttpServer): SocketIOServer {
     const universityId = socket.data.universityId as string;
     // Join the per-user room for notifications, friend-status, and match events.
     void socket.join(`user:${userId}`);
-    // Join the campus room for wall fan-out (SOCKET_EVENTS.md §9).
+    // Universal mode: join global campus room for cross-campus wall fan-out.
+    // Also join per-campus room for future premium campus-only feature.
+    void socket.join('campus:global');
     if (universityId) void socket.join(`campus:${universityId}`);
     logger.info({ socketId: socket.id, userId }, 'Socket authenticated and connected');
 
