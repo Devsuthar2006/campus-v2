@@ -22,6 +22,79 @@ import { cn } from '../../../lib/utils';
 /** The target type accepted by moderation actions (mirrors ApplyActionInput). */
 type ApplyTarget = ApplyActionInput['targetType'];
 
+function AdminMediaViewer({ mediaId, mimeType }: { mediaId: string; mimeType?: string }) {
+  const [url, setUrl] = useState<string | null>(null);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    adminApi
+      .mediaUrl(mediaId)
+      .then((res) => setUrl(res.url))
+      .catch(() => setError(true));
+  }, [mediaId]);
+
+  if (error)
+    return (
+      <div className="text-small text-danger p-2 border border-danger/30 rounded bg-danger/10">
+        Failed to load media {mediaId}
+      </div>
+    );
+  if (!url)
+    return (
+      <div className="text-small text-muted-foreground p-2 border rounded">
+        Loading media {mediaId}…
+      </div>
+    );
+
+  const isAudio =
+    mimeType?.startsWith('audio/') ||
+    url.includes('.mp3') ||
+    url.includes('.m4a') ||
+    url.includes('.wav') ||
+    url.includes('.ogg');
+  const isVideo = mimeType?.startsWith('video/') || url.includes('.mp4') || url.includes('.mov');
+  const isImage = mimeType?.startsWith('image/');
+
+  if (isAudio) {
+    return (
+      <div className="overflow-hidden rounded-md border border-border bg-black/5 flex items-center justify-center p-4">
+        <audio src={url} controls className="w-full" aria-label="Reported audio" />
+      </div>
+    );
+  }
+
+  if (isVideo) {
+    return (
+      <div className="overflow-hidden rounded-md border border-border bg-black/5 flex items-center justify-center p-2">
+        <video
+          src={url}
+          controls
+          className="max-h-64 max-w-full object-contain"
+          aria-label="Reported video"
+        />
+      </div>
+    );
+  }
+
+  if (isImage) {
+    return (
+      <div className="overflow-hidden rounded-md border border-border bg-black/5 flex items-center justify-center p-2">
+        <img src={url} alt="Reported image" className="max-h-64 max-w-full object-contain" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-hidden rounded-md border border-border bg-black/5 flex items-center justify-center p-2">
+      <object
+        data={url}
+        className="max-h-64 max-w-full object-contain"
+        aria-label="Reported media"
+      />
+    </div>
+  );
+}
+
 /** Human-friendly label for a raw target-type string. */
 function targetLabel(targetType: string): string {
   return targetType.replace(/_/g, ' ');
@@ -41,6 +114,25 @@ function statusVariant(status: ReportStatus): BadgeProps['variant'] {
     default:
       return 'neutral';
   }
+}
+
+/**
+ * Extracts the human-readable note from a report's `details` field.
+ * Friend-chat reports store a JSON blob with `{ source, transcript, userDetails }`
+ * — we only want to show `userDetails` (the reporter's note), not the raw JSON.
+ * Generic reports store plain text which is returned as-is.
+ */
+function formatReportDetails(details: string | null | undefined): string | null {
+  if (!details) return null;
+  try {
+    const parsed = JSON.parse(details);
+    if (typeof parsed === 'object' && parsed !== null && parsed.source === 'friend_chat') {
+      return typeof parsed.userDetails === 'string' ? parsed.userDetails : null;
+    }
+  } catch {
+    // Not JSON — plain text details.
+  }
+  return details;
 }
 
 /**
@@ -157,8 +249,8 @@ export default function AdminReportsPage() {
                   <Badge variant={statusVariant(report.status)}>{report.status}</Badge>
                 </div>
               </div>
-              {report.details ? (
-                <p className="text-body text-foreground">{report.details}</p>
+              {formatReportDetails(report.details) ? (
+                <p className="text-body text-foreground">{formatReportDetails(report.details)}</p>
               ) : null}
               <span className="text-small text-muted-foreground">
                 Reported {new Date(report.createdAt).toLocaleString()}
@@ -261,7 +353,9 @@ function ReportContextDrawer({ report, onClose, onAction, onResolve }: ReportCon
               {new Date(report.createdAt).toLocaleString()}
             </span>
           </div>
-          {report.details ? <p className="text-body text-foreground">{report.details}</p> : null}
+          {formatReportDetails(report.details) ? (
+            <p className="text-body text-foreground">{formatReportDetails(report.details)}</p>
+          ) : null}
 
           {/* Resolved content */}
           <div className="border-t border-border pt-space-4">
@@ -327,8 +421,21 @@ function ReportTargetContent({ context }: { context: ReportContext }) {
     case 'wall_reply':
     case 'community_post':
       return <PostContentView content={target.content} />;
-    case 'user':
-      return <UserContentView content={target.content} />;
+    case 'user': {
+      const content = asRecord(target.content);
+      const source = asRecord(content).source;
+      const isChatReport = source === 'friend_chat' || source === 'anon_chat';
+      return (
+        <div className="flex flex-col gap-space-4">
+          <UserContentView content={target.content} isChatReport={isChatReport} />
+          {target.transcript && target.transcript.length > 0 ? (
+            <div className="border-t border-border pt-space-4">
+              <TranscriptView messages={target.transcript} />
+            </div>
+          ) : null}
+        </div>
+      );
+    }
     default:
       return (
         <p className="text-caption text-muted-foreground">
@@ -377,10 +484,15 @@ function TranscriptView({ messages }: { messages: TranscriptMessage[] }) {
               </p>
             ) : null}
             {message.attachment ? (
-              <p className="mt-space-1 text-small text-muted-foreground">
-                {message.attachment.kind} attachment · {message.attachment.mimeType} (media{' '}
-                {message.attachment.mediaId})
-              </p>
+              <div className="mt-space-2 flex flex-col gap-1">
+                <p className="text-small text-muted-foreground">
+                  {message.attachment.kind} attachment · {message.attachment.mimeType}
+                </p>
+                <AdminMediaViewer
+                  mediaId={message.attachment.mediaId}
+                  mimeType={message.attachment.mimeType}
+                />
+              </div>
             ) : null}
           </li>
         ))}
@@ -441,15 +553,13 @@ function PostContentView({ content }: { content: unknown }) {
         {post.createdAt ? <span>{new Date(post.createdAt).toLocaleString()}</span> : null}
       </div>
       {post.mediaIds && post.mediaIds.length > 0 ? (
-        <div className="flex flex-col gap-space-1">
-          <span className="text-caption text-muted-foreground">Media references</span>
-          <ul className="flex flex-wrap gap-space-2">
+        <div className="flex flex-col gap-space-2 mt-space-2">
+          <span className="text-caption text-muted-foreground">Media attachments</span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-space-2">
             {post.mediaIds.map((mediaId) => (
-              <li key={mediaId}>
-                <Badge variant="neutral">{mediaId}</Badge>
-              </li>
+              <AdminMediaViewer key={mediaId} mediaId={mediaId} />
             ))}
-          </ul>
+          </div>
         </div>
       ) : null}
     </div>
@@ -464,6 +574,10 @@ interface UserLikeContent {
   accountStatus?: string;
   createdAt?: string;
   recentActivity?: unknown[];
+  source?: string;
+  friendshipId?: string;
+  sessionId?: string;
+  userDetails?: string | null;
 }
 
 function toUserLike(content: unknown): UserLikeContent {
@@ -477,11 +591,15 @@ function toUserLike(content: unknown): UserLikeContent {
     accountStatus: typeof user.accountStatus === 'string' ? user.accountStatus : undefined,
     createdAt: typeof user.createdAt === 'string' ? user.createdAt : undefined,
     recentActivity: Array.isArray(activity) ? activity : [],
+    source: typeof record.source === 'string' ? record.source : undefined,
+    friendshipId: typeof record.friendshipId === 'string' ? record.friendshipId : undefined,
+    sessionId: typeof record.sessionId === 'string' ? record.sessionId : undefined,
+    userDetails: typeof record.userDetails === 'string' ? record.userDetails : null,
   };
 }
 
-/** User target: summary plus recent reportable activity (Req 7.4). */
-function UserContentView({ content }: { content: unknown }) {
+/** User target: summary plus context-appropriate activity (chat transcript or wall posts). */
+function UserContentView({ content, isChatReport }: { content: unknown; isChatReport?: boolean }) {
   const user = toUserLike(content);
   const activity = user.recentActivity ?? [];
   return (
@@ -489,6 +607,11 @@ function UserContentView({ content }: { content: unknown }) {
       <div className="flex items-center gap-space-2 text-caption text-muted-foreground">
         <UserIcon className="h-4 w-4" aria-hidden="true" />
         <span>Reported user</span>
+        {isChatReport ? (
+          <Badge variant="neutral" className="ml-1">
+            {user.source === 'anon_chat' ? 'Random Chat Report' : 'Friend Chat Report'}
+          </Badge>
+        ) : null}
       </div>
       <div className="rounded-card border border-border bg-background px-space-4 py-space-3">
         <p className="text-body font-medium text-foreground">{user.name ?? 'Unknown user'}</p>
@@ -501,7 +624,28 @@ function UserContentView({ content }: { content: unknown }) {
           </p>
         ) : null}
       </div>
-      {activity.length > 0 ? (
+      {isChatReport ? (
+        <>
+          {user.userDetails ? (
+            <div className="rounded-card border border-border bg-background px-space-4 py-space-3">
+              <span className="text-caption text-muted-foreground">Reporter&apos;s note</span>
+              <p className="text-small text-foreground mt-1">{user.userDetails}</p>
+            </div>
+          ) : null}
+          {user.friendshipId ? (
+            <p className="text-caption text-muted-foreground">
+              Friendship ID:{' '}
+              <span className="font-mono text-foreground break-all">{user.friendshipId}</span>
+            </p>
+          ) : null}
+          {user.sessionId ? (
+            <p className="text-caption text-muted-foreground">
+              Session ID:{' '}
+              <span className="font-mono text-foreground break-all">{user.sessionId}</span>
+            </p>
+          ) : null}
+        </>
+      ) : activity.length > 0 ? (
         <div className="flex flex-col gap-space-1">
           <span className="text-caption text-muted-foreground">Recent activity</span>
           <ul className="flex flex-col gap-space-1">

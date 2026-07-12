@@ -89,7 +89,10 @@ function DashboardMetricsGrid() {
   }
 
   return (
-    <section aria-label="Platform metrics" className="grid grid-cols-2 gap-space-3 md:grid-cols-3">
+    <section
+      aria-label="Platform metrics"
+      className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-space-3"
+    >
       {METRIC_SPECS.map((spec) => (
         <StatCard
           key={spec.key}
@@ -123,14 +126,19 @@ function FeatureFlagsSection() {
       ) : (
         <div className="flex flex-col gap-space-2">
           {flags.map((flag) => (
-            <Card key={flag.key} className="flex items-center justify-between gap-space-3">
-              <div className="flex flex-col">
-                <span className="text-body text-foreground">{flag.key}</span>
+            <Card
+              key={flag.key}
+              className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-space-3"
+            >
+              <div className="flex flex-col min-w-0">
+                <span className="text-body font-semibold text-foreground break-all">
+                  {flag.key}
+                </span>
                 {flag.description ? (
                   <span className="text-small text-muted-foreground">{flag.description}</span>
                 ) : null}
               </div>
-              <div className="flex items-center gap-space-2">
+              <div className="flex items-center justify-between sm:justify-end gap-space-2 shrink-0 w-full sm:w-auto border-t border-border/40 pt-space-2 sm:border-0 sm:pt-0">
                 <Badge variant={flag.isEnabled ? 'success' : 'neutral'}>
                   {flag.isEnabled ? 'Enabled' : 'Disabled'}
                 </Badge>

@@ -271,6 +271,7 @@ export default function AdminUsersPage() {
 
       <div className="flex gap-space-2">
         <Input
+          className="flex-1"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => {

@@ -46,7 +46,7 @@ export default function AdminAuditPage() {
     {
       label: 'Actor',
       render: (log) => (
-        <span className="text-body text-foreground">
+        <span className="text-body text-foreground break-all">
           {log.actorId ?? <span className="text-muted-foreground">system</span>}
         </span>
       ),
@@ -55,7 +55,7 @@ export default function AdminAuditPage() {
       label: 'Target',
       render: (log) =>
         log.targetType || log.targetId ? (
-          <span className="text-body text-foreground">
+          <span className="text-body text-foreground break-all">
             {log.targetType ?? '—'}
             {log.targetId ? <span className="text-muted-foreground"> · {log.targetId}</span> : null}
           </span>

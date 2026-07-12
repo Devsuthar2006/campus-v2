@@ -689,13 +689,30 @@ export const adminService = new AdminService();
 
 // --- mappers ---
 function toAdminReport(r: ReportRow): AdminReport {
+  // For chat reports, details contains a JSON blob with the transcript.
+  // Strip it down to just the user's note for the list view.
+  let details = r.details;
+  if (details) {
+    try {
+      const parsed = JSON.parse(details);
+      if (
+        typeof parsed === 'object' &&
+        parsed !== null &&
+        (parsed.source === 'friend_chat' || parsed.source === 'anon_chat')
+      ) {
+        details = typeof parsed.userDetails === 'string' ? parsed.userDetails : null;
+      }
+    } catch {
+      // Not JSON — plain text, keep as-is.
+    }
+  }
   return {
     id: r.id,
     reporterId: r.reporterId,
     targetType: r.targetType,
     targetId: r.targetId,
     reason: r.reason,
-    details: r.details,
+    details,
     status: r.status,
     createdAt: r.createdAt.toISOString(),
   };

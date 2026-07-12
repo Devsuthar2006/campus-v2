@@ -2,13 +2,138 @@
 
 import { useEffect, useRef, useState, type FormEvent, type ChangeEvent } from 'react';
 import type { MessageContextType } from '@campusly/shared-types';
-import { ImagePlus, Mic, Square, Paperclip, Shuffle } from 'lucide-react';
+import { ImagePlus, Mic, Square, Paperclip, Shuffle, Smile } from 'lucide-react';
 import { useConversation } from '../hooks/useConversation';
 import { mediaApi } from '../lib/media';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { MediaAttachment } from './MediaAttachment';
 import { cn } from '../lib/utils';
+
+const EMOJI_CATEGORIES = [
+  {
+    label: 'Smileys',
+    icon: '😀',
+    emojis: [
+      '😊',
+      '😂',
+      '🤣',
+      '😍',
+      '🥰',
+      '😉',
+      '😎',
+      '😋',
+      '😜',
+      '🤪',
+      '🧐',
+      '🤨',
+      '😐',
+      '🙄',
+      '😬',
+      '😔',
+      '😢',
+      '😭',
+      '😠',
+      '😡',
+      '😱',
+      '🤯',
+      '🤔',
+      '🤫',
+      '😴',
+      '😷',
+      '😇',
+      '🤠',
+      '🤡',
+      '🥳',
+      '👻',
+      '💀',
+      '👽',
+      '🤖',
+      '🎃',
+    ],
+  },
+  {
+    label: 'Gestures',
+    icon: '👍',
+    emojis: [
+      '👍',
+      '👎',
+      '👊',
+      '✌️',
+      '👌',
+      '👋',
+      '🤝',
+      '🙏',
+      '🙌',
+      '👏',
+      '🙋‍♂️',
+      '🙋‍♀️',
+      '🤷‍♂️',
+      '🤷‍♀️',
+      '🤦‍♂️',
+      '🤦‍♀️',
+      '✍️',
+      '🤳',
+      '💪',
+      '💅',
+    ],
+  },
+  {
+    label: 'Hearts',
+    icon: '❤️',
+    emojis: [
+      '❤️',
+      '🧡',
+      '💛',
+      '💚',
+      '💙',
+      '💜',
+      '🖤',
+      '🤍',
+      '🤎',
+      '💔',
+      '💖',
+      '💗',
+      '💓',
+      '💞',
+      '💕',
+      '💘',
+      '❣️',
+      '🔥',
+      '✨',
+      '🌟',
+      '💥',
+    ],
+  },
+  {
+    label: 'Campus',
+    icon: '🏫',
+    emojis: [
+      '🏫',
+      '🎓',
+      '📚',
+      '📝',
+      '💻',
+      '🎨',
+      '🎵',
+      '⚽',
+      '🏀',
+      '🏈',
+      '🍕',
+      '🍔',
+      '🍟',
+      '🍜',
+      '☕',
+      '🍻',
+      '🎉',
+      '🎁',
+      '🎈',
+      '📢',
+      '💡',
+      '⏰',
+    ],
+  },
+];
 
 /**
  * Reusable conversation UI (UI_GUIDELINES.md §12): message list + composer.
@@ -35,15 +160,30 @@ export function Chat({
   const [recording, setRecording] = useState(false);
   const [mediaError, setMediaError] = useState<string | null>(null);
   const [showMediaMenu, setShowMediaMenu] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [activeEmojiTab, setActiveEmojiTab] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const startedAtRef = useRef<number>(0);
   const endRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, partnerTyping]);
+
+  useEffect(() => {
+    if (!showEmojiPicker) return;
+    const handleOutsideClick = () => setShowEmojiPicker(false);
+    window.addEventListener('click', handleOutsideClick);
+    return () => window.removeEventListener('click', handleOutsideClick);
+  }, [showEmojiPicker]);
+
+  const addEmoji = (emoji: string) => {
+    setDraft((prev) => prev + emoji);
+    inputRef.current?.focus();
+  };
 
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -135,6 +275,7 @@ export function Chat({
                       <MediaAttachment
                         attachment={m.attachment!}
                         expired={expiredMessageIds.has(m.id)}
+                        noBlur={contextType === 'friendship'}
                       />
                     </div>
                   ) : (
@@ -269,7 +410,70 @@ export function Chat({
           </Button>
         )}
 
+        {/* Emoji Button & Picker Container */}
+        <div className="relative flex shrink-0">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            aria-label="Insert emoji"
+            disabled={busy || recording}
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowEmojiPicker(!showEmojiPicker);
+              setShowMediaMenu(false);
+            }}
+            className={cn(
+              'rounded-full h-9 w-9 p-0 flex items-center justify-center shrink-0 text-muted-foreground hover:text-foreground hover:bg-muted/40',
+              showEmojiPicker && 'text-brand bg-brand/10',
+            )}
+          >
+            <Smile className="h-5 w-5" />
+          </Button>
+
+          {/* Emoji Picker Popover (positioned relative to button, near the text area) */}
+          {showEmojiPicker && !recording && (
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="absolute bottom-[44px] left-[-20px] md:left-0 bg-card/95 backdrop-blur-md border border-border rounded-2xl shadow-xl flex flex-col p-3 z-30 w-72 h-80 animate-in slide-in-from-bottom-2 duration-150"
+            >
+              {/* Tabs header */}
+              <div className="flex border-b border-border pb-2 mb-2 justify-around select-none">
+                {EMOJI_CATEGORIES.map((cat, i) => (
+                  <button
+                    key={cat.label}
+                    type="button"
+                    onClick={() => setActiveEmojiTab(i)}
+                    title={cat.label}
+                    className={cn(
+                      'text-body p-1 rounded-lg hover:bg-muted/60 transition-colors',
+                      activeEmojiTab === i && 'bg-brand/10 ring-1 ring-brand/35',
+                    )}
+                  >
+                    {cat.icon}
+                  </button>
+                ))}
+              </div>
+
+              {/* Emojis grid */}
+              <div className="flex-1 overflow-y-auto grid grid-cols-6 gap-1 pr-1 scrollbar-thin select-none">
+                {(EMOJI_CATEGORIES[activeEmojiTab]?.emojis ?? []).map((emoji) => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    onClick={() => addEmoji(emoji)}
+                    className="flex h-10 w-10 items-center justify-center rounded-lg hover:bg-muted text-body active:scale-90 transition-transform"
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
         <Input
+          ref={inputRef}
           value={draft}
           onChange={(e) => {
             setDraft(e.target.value);

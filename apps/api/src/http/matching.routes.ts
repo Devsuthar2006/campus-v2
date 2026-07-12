@@ -10,6 +10,7 @@ import { sendData } from './respond.js';
 import { requireAuth, getAuth } from '../middleware/requireAuth.js';
 import { matchingService } from '../services/matchingService.js';
 import { matchingRepository } from '../repositories/matchingRepository.js';
+import { logger } from '../config/logger.js';
 
 /**
  * Matching REST endpoints (API_SPEC.md §5). Live matching flows over Socket.IO
@@ -42,6 +43,7 @@ const ReportSchema = z.object({
 matchingRouter.post(
   '/matching/report',
   asyncHandler(async (req, res) => {
+    logger.info({ body: req.body, user: getAuth(req).sub }, 'Received match report request');
     const { sessionId, reason, details } = ReportSchema.parse(req.body);
     await matchingService.reportMatch(sessionId, getAuth(req).sub, reason, details);
     sendData(res, { success: true });

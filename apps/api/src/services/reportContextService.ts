@@ -1,4 +1,9 @@
-import type { AccessTokenClaims, AdminReport, ReportContext } from '@campusly/shared-types';
+import type {
+  AccessTokenClaims,
+  AdminReport,
+  ReportContext,
+  TranscriptMessage,
+} from '@campusly/shared-types';
 import { MODERATOR_ROLES } from '@campusly/shared-types';
 import { NotFoundError } from '../domain/errors.js';
 import type { ReportRow, WallPostRow, WallReplyRow, CommunityPostRow } from '../db/schema.js';
@@ -103,7 +108,7 @@ class ReportContextService {
       case 'community_post':
         return this.resolveCommunityPost(report.targetId, reveal);
       case 'user':
-        return this.resolveUser(report.targetId);
+        return this.resolveUser(report);
       default:
         // Targets outside the reviewable set (e.g. marketplace_item,
         // lost_found_item) have no displayable context resolver yet. This is a
@@ -162,14 +167,43 @@ class ReportContextService {
     return { kind: 'community_post', content: communityPostContent(post, reveal) };
   }
 
-  private async resolveUser(userId: string): Promise<ReportTarget> {
+  /**
+   * Resolves a user report's context. Two distinct flavours:
+   *
+   *  1. **Friend-chat report** — the report's `details` field contains a JSON
+   *     blob with `source: 'friend_chat'` and a pre-captured `transcript` array
+   *     (snapshot taken at report time, before the friendship was severed).
+   *     This is the primary context the moderator needs.
+   *
+   *  2. **Generic user report** — no chat context; fall back to the user's
+   *     recent wall-post activity as supplementary context.
+   */
+  private async resolveUser(report: ReportRow): Promise<ReportTarget> {
+    const userId = report.targetId;
     const summaries = await userRepository.getPublicSummaries([userId]);
     const summary = summaries.get(userId);
     // Graceful unavailability (Req 7.6): purged account → contentUnavailable.
     if (!summary) return { kind: 'user', content: null, contentUnavailable: true };
 
-    // Recent reportable activity relevant to the report: the user's most recent
-    // visible wall posts (reuses the existing author feed query).
+    // Try to parse embedded chat context from the details field.
+    const chatContext = parseChatReportDetails(report.details);
+
+    if (chatContext) {
+      // Chat report: show the captured transcript, not wall posts.
+      return {
+        kind: 'user',
+        content: {
+          user: summary,
+          source: chatContext.source,
+          friendshipId: chatContext.friendshipId,
+          sessionId: chatContext.sessionId,
+          userDetails: chatContext.userDetails,
+        },
+        transcript: chatContext.transcript,
+      };
+    }
+
+    // Generic user report: show recent wall activity as context.
     const recentPosts = await wallRepository.listPostsByAuthor(userId);
     const recentActivity = recentPosts.map((post) => ({
       kind: 'wall_post' as const,
@@ -178,11 +212,71 @@ class ReportContextService {
       status: post.status,
       createdAt: post.createdAt.toISOString(),
     }));
+
     return { kind: 'user', content: { user: summary, recentActivity } };
   }
 }
 
 export const reportContextService = new ReportContextService();
+
+// --- chat report details parser -----------------------------------------------
+
+/**
+ * When a chat report is filed (friend-chat or random-chat), the chat transcript
+ * is captured at that moment and serialized as JSON into the report's `details`
+ * column. This parser extracts that structured context.
+ */
+function parseChatReportDetails(details: string | null): {
+  userDetails: string | null;
+  source: 'friend_chat' | 'anon_chat';
+  friendshipId?: string;
+  sessionId?: string;
+  transcript: TranscriptMessage[];
+} | null {
+  if (!details) return null;
+  try {
+    const parsed = JSON.parse(details);
+    if (
+      typeof parsed === 'object' &&
+      parsed !== null &&
+      (parsed.source === 'friend_chat' || parsed.source === 'anon_chat') &&
+      Array.isArray(parsed.transcript)
+    ) {
+      return {
+        userDetails: parsed.userDetails ?? null,
+        source: parsed.source,
+        friendshipId: typeof parsed.friendshipId === 'string' ? parsed.friendshipId : undefined,
+        sessionId: typeof parsed.sessionId === 'string' ? parsed.sessionId : undefined,
+        transcript: parsed.transcript,
+      };
+    }
+  } catch {
+    // Not JSON — plain-text details from a generic report.
+  }
+  return null;
+}
+
+/**
+ * Strips embedded transcript data from the details field before sending to the
+ * frontend. For chat reports the huge JSON blob is replaced with just
+ * the reporter's note; for generic reports the plain text is returned as-is.
+ */
+function sanitizeReportDetails(details: string | null): string | null {
+  if (!details) return null;
+  try {
+    const parsed = JSON.parse(details);
+    if (
+      typeof parsed === 'object' &&
+      parsed !== null &&
+      (parsed.source === 'friend_chat' || parsed.source === 'anon_chat')
+    ) {
+      return typeof parsed.userDetails === 'string' ? parsed.userDetails : null;
+    }
+  } catch {
+    // Not JSON — plain text.
+  }
+  return details;
+}
 
 // --- mappers ----------------------------------------------------------------
 
@@ -193,7 +287,7 @@ function toAdminReport(r: ReportRow): AdminReport {
     targetType: r.targetType,
     targetId: r.targetId,
     reason: r.reason,
-    details: r.details,
+    details: sanitizeReportDetails(r.details),
     status: r.status,
     createdAt: r.createdAt.toISOString(),
   };

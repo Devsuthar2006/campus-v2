@@ -441,7 +441,7 @@ export default function MatchPage() {
       )}
 
       {/* Report Reasons Modal Overlay */}
-      {reporting && partner && (
+      {reporting && (
         <div className="fixed inset-0 bg-background/60 backdrop-blur-sm z-50 flex items-center justify-center p-space-4 animate-in fade-in duration-200">
           <div className="absolute inset-0" onClick={() => setReporting(false)} />
 

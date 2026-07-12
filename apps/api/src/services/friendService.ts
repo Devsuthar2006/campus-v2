@@ -6,6 +6,7 @@ import type {
   BlockedUserItem,
   PublicUserSummary,
   SendFriendRequestInput,
+  ReportReason,
 } from '@campusly/shared-types';
 import { FRIEND_SERVER_EVENTS } from '@campusly/shared-types';
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../domain/errors.js';
@@ -13,6 +14,8 @@ import { friendRepository } from '../repositories/friendRepository.js';
 import { userRepository } from '../repositories/userRepository.js';
 import { profileRepository } from '../repositories/profileRepository.js';
 import { matchingRepository } from '../repositories/matchingRepository.js';
+import { reportRepository } from '../repositories/reportRepository.js';
+import { dataInspectorRepository } from '../repositories/dataInspectorRepository.js';
 import { notifier } from '../realtime/notifier.js';
 import { notificationService } from './notificationService.js';
 import { logger } from '../config/logger.js';
@@ -307,5 +310,51 @@ export const friendService = {
       const s = summaries.get(r.blockedId);
       return s ? [{ user: toSummary(s), createdAt: r.createdAt.toISOString() }] : [];
     });
+  },
+
+  async reportFriend(
+    userId: string,
+    friendshipId: string,
+    reason: ReportReason,
+    details?: string,
+  ): Promise<void> {
+    const friendship = await friendRepository.getFriendshipById(friendshipId);
+    if (!friendship || friendship.deletedAt) {
+      throw new NotFoundError('Friendship not found.');
+    }
+    if (friendship.userLow !== userId && friendship.userHigh !== userId) {
+      throw new ForbiddenError('You are not part of this friendship.');
+    }
+    const targetId = friendship.userLow === userId ? friendship.userHigh : friendship.userLow;
+
+    // 1. Capture the chat transcript BEFORE blocking (block deletes the
+    //    friendship row, making it impossible to query the conversation later).
+    const transcript = await dataInspectorRepository.readConversationWindow({
+      contextType: 'friendship',
+      conversationId: friendship.id,
+      limit: 50,
+    });
+
+    // 2. Bundle the user-provided details alongside the captured transcript
+    //    as structured JSON so the moderator context resolver can display the
+    //    full chat history even after the friendship is severed.
+    const reportDetails = JSON.stringify({
+      userDetails: details ?? null,
+      source: 'friend_chat',
+      friendshipId: friendship.id,
+      transcript,
+    });
+
+    // 3. File report
+    await reportRepository.create({
+      reporterId: userId,
+      targetType: 'user',
+      targetId,
+      reason,
+      details: reportDetails,
+    });
+
+    // 4. Block user (which transactionally deletes friendship and cancels requests)
+    await this.block(userId, targetId, reason);
   },
 };

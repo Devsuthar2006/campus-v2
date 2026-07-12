@@ -125,3 +125,19 @@ friendRouter.get(
     sendData(res, { blocked });
   }),
 );
+
+/** POST /friends/:id/report — report a friend (friendship id). */
+friendRouter.post(
+  '/friends/:id/report',
+  asyncHandler(async (req, res) => {
+    const { id } = IdParam.parse(req.params);
+    const { reason, details } = z
+      .object({
+        reason: z.enum(['spam', 'harassment', 'hate', 'nsfw', 'safety', 'other']),
+        details: z.string().trim().max(1000).optional(),
+      })
+      .parse(req.body);
+    await friendService.reportFriend(getAuth(req).sub, id, reason, details);
+    sendData(res, { success: true });
+  }),
+);

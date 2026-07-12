@@ -76,9 +76,9 @@ export function ConfirmDialog({
           >
             <AlertTriangle className="h-5 w-5" />
           </span>
-          <div className="space-y-space-2">
-            <p className="text-body text-foreground">{description}</p>
-            <p className="text-caption text-muted-foreground">{reversibility}</p>
+          <div className="space-y-space-2 min-w-0 flex-1">
+            <p className="text-body text-foreground break-words">{description}</p>
+            <p className="text-caption text-muted-foreground break-words">{reversibility}</p>
           </div>
         </div>
 

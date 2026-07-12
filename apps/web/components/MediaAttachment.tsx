@@ -16,6 +16,7 @@ export function MediaAttachment({
   expired,
   imgClassName,
   context = 'chat',
+  noBlur = false,
 }: {
   attachment: ChatAttachment;
   expired?: boolean;
@@ -23,6 +24,7 @@ export function MediaAttachment({
   imgClassName?: string;
   /** 'chat' = blur + lightbox + expiry. 'wall' = direct display, no expiry. */
   context?: 'chat' | 'wall';
+  noBlur?: boolean;
 }) {
   const [url, setUrl] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
@@ -121,18 +123,21 @@ export function MediaAttachment({
             src={url}
             alt="Shared media"
             className={cn(
-              'max-h-64 w-full object-cover transition-all duration-300 blur-2xl scale-105',
+              'max-h-64 w-full object-cover transition-all duration-300',
+              !noBlur && 'blur-2xl scale-105',
               imgClassName,
             )}
             loading="lazy"
           />
 
           {/* Blur Overlay */}
-          <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center gap-2 p-4 text-center">
-            <Eye className="h-6 w-6 text-white/90 animate-pulse" />
-            <span className="text-small font-semibold text-white">Tap to view photo</span>
-            <span className="text-caption text-white/70 font-mono">{expiryText}</span>
-          </div>
+          {!noBlur && (
+            <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center gap-2 p-4 text-center">
+              <Eye className="h-6 w-6 text-white/90 animate-pulse" />
+              <span className="text-small font-semibold text-white">Tap to view photo</span>
+              <span className="text-caption text-white/70 font-mono">{expiryText}</span>
+            </div>
+          )}
         </div>
 
         {/* Full screen Lightbox overlay */}

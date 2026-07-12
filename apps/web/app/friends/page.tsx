@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { REPORT_REASONS } from '@campusly/shared-types';
 import { useRequireAuth } from '../../hooks/useRequireAuth';
 import { useFriends } from '../../hooks/useFriends';
 import { AppNav } from '../../components/AppNav';
@@ -30,10 +31,12 @@ export default function FriendsPage() {
     removeFriend,
     block,
     unblock,
+    report,
   } = useFriends();
   const [openFriendshipId, setOpenFriendshipId] = useState<string | null>(null);
   const [showOptions, setShowOptions] = useState(false);
   const [showProfileView, setShowProfileView] = useState(false);
+  const [reporting, setReporting] = useState(false);
   const [publicProfile, setPublicProfile] = useState<any | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [sidebarView, setSidebarView] = useState<'friends' | 'requests'>('friends');
@@ -403,11 +406,60 @@ export default function FriendsPage() {
             </button>
             <button
               type="button"
+              onClick={() => {
+                setShowOptions(false);
+                setReporting(true);
+              }}
+              className="w-full py-space-3 text-body font-medium hover:bg-danger/10 transition-colors border-t border-divider text-danger select-none"
+            >
+              Report User
+            </button>
+            <button
+              type="button"
               onClick={() => setShowOptions(false)}
               className="w-full py-space-3 text-body font-normal hover:bg-muted/50 transition-colors border-t border-divider text-muted-foreground select-none"
             >
               Cancel
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Report Reasons Modal Overlay */}
+      {reporting && openFriend && (
+        <div className="fixed inset-0 bg-background/60 backdrop-blur-sm z-50 flex items-center justify-center p-space-4 animate-in fade-in duration-200">
+          <div className="absolute inset-0" onClick={() => setReporting(false)} />
+
+          <div className="relative bg-card border border-border w-full max-w-[280px] rounded-2xl shadow-2xl flex flex-col p-space-4 gap-space-3 animate-in fade-in zoom-in-95 duration-200">
+            <h3 className="text-body font-semibold text-foreground">Report User</h3>
+            <p className="text-caption text-muted-foreground">
+              Please select a reason for reporting. This will block them and submit the chat
+              transcript for review.
+            </p>
+            <div className="flex flex-col gap-2">
+              {REPORT_REASONS.map((reason) => (
+                <button
+                  key={reason}
+                  type="button"
+                  onClick={() => {
+                    void report(openFriend.friendshipId, reason);
+                    setReporting(false);
+                    setOpenFriendshipId(null);
+                  }}
+                  className="w-full py-2 px-3 text-left text-small font-medium hover:bg-muted transition-colors rounded-lg capitalize border border-border/40 text-foreground"
+                >
+                  {reason.replace(/_/g, ' ')}
+                </button>
+              ))}
+            </div>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="mt-2 w-full"
+              onClick={() => setReporting(false)}
+            >
+              Cancel
+            </Button>
           </div>
         </div>
       )}

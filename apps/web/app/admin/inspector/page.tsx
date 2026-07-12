@@ -135,7 +135,7 @@ function PostsTable({ kind }: { kind: 'wall' | 'community' }) {
         p.isAnonymous ? (
           <Badge variant="neutral">Anonymous</Badge>
         ) : (
-          <span className="text-body text-foreground">{p.authorId ?? '—'}</span>
+          <span className="text-body text-foreground break-all">{p.authorId ?? '—'}</span>
         ),
     },
     {
@@ -377,7 +377,7 @@ function TranscriptView({ transcript }: { transcript: ConversationTranscript }) 
               )}
             >
               <div className="flex items-center justify-between gap-space-2">
-                <span className="text-caption text-muted-foreground">{m.senderId}</span>
+                <span className="text-caption text-muted-foreground break-all">{m.senderId}</span>
                 <span className="text-small text-muted-foreground">
                   {new Date(m.createdAt).toLocaleString()}
                 </span>

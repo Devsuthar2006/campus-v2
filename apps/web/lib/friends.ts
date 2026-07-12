@@ -65,4 +65,11 @@ export const friendsApi = {
     const data = await apiFetch<{ blocked: BlockedUserItem[] }>('/friends/blocked');
     return data.blocked;
   },
+
+  async report(friendshipId: string, reason: string, details?: string): Promise<void> {
+    await apiFetch(`/friends/${friendshipId}/report`, {
+      method: 'POST',
+      body: JSON.stringify({ reason, details }),
+    });
+  },
 };

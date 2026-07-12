@@ -128,6 +128,14 @@ export function useFriends() {
     [refreshOutgoing],
   );
 
+  const report = useCallback(
+    async (friendshipId: string, reason: string, details?: string) => {
+      await friendsApi.report(friendshipId, reason, details);
+      refreshAll();
+    },
+    [refreshAll],
+  );
+
   // Ensure a connection exists even if no live event has fired yet.
   useEffect(() => {
     getSocket();
@@ -145,6 +153,7 @@ export function useFriends() {
     block,
     unblock,
     sendRequest,
+    report,
     refreshAll,
   };
 }
