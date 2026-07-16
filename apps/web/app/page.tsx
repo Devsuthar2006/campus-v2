@@ -228,7 +228,7 @@ export default function LandingPage() {
                     style={{ transform: `translateX(-${panelIndex * (100 / 3)}%)` }}
                   >
                     {/* ══════════════════════════ PANEL 1: Hero ══════════════════════════ */}
-                    <section className="px-space-2">
+                    <section className="px-space-2 self-center">
                       <div className="flex flex-col items-center gap-space-4 sm:flex-row sm:justify-center">
                         <button
                           type="button"
