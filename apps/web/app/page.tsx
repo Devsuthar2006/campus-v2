@@ -209,6 +209,9 @@ export default function LandingPage() {
             <h1 className="font-display text-display tracking-tight">
               Anonymous<span className="text-brand">U</span>
             </h1>
+            <p className="font-cursive text-3xl md:text-4xl lg:text-5xl text-brand mt-space-2 mb-space-4 font-medium italic drop-shadow-sm rotate-[-2deg]">
+              a social media with privacy
+            </p>
 
             <div className="mt-space-8 w-full max-w-3xl overflow-hidden">
               <div

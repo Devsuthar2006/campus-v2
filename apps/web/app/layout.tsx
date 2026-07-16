@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter, Sora } from 'next/font/google';
+import { Inter, Sora, Caveat } from 'next/font/google';
 import { Providers } from './providers';
 import '../styles/globals.css';
 
@@ -10,6 +10,13 @@ const sora = Sora({
   subsets: ['latin'],
   weight: ['600', '700', '800'],
   variable: '--font-display',
+  display: 'swap',
+});
+// Caveat — premium cursive font for taglines.
+const caveat = Caveat({
+  subsets: ['latin'],
+  weight: ['500', '700'],
+  variable: '--font-cursive',
   display: 'swap',
 });
 
@@ -26,7 +33,11 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${inter.variable} ${sora.variable}`}>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${inter.variable} ${sora.variable} ${caveat.variable}`}
+    >
       <head>
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
