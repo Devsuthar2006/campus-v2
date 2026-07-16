@@ -46,6 +46,16 @@ export default function LandingPage() {
     return () => clearTimeout(t);
   }, []);
 
+  const [mockupScreenIndex, setMockupScreenIndex] = useState(0);
+
+  useEffect(() => {
+    if (!mounted) return;
+    const interval = setInterval(() => {
+      setMockupScreenIndex((prev) => (prev + 1) % 3);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [mounted]);
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const currentView = new URLSearchParams(window.location.search).get('view');
@@ -467,44 +477,107 @@ export default function LandingPage() {
 
                     {/* Screen Content - App View */}
                     <div className="relative flex-1 bg-surface w-full h-full flex flex-col overflow-hidden pt-8">
-                      {/* Header bar inside app */}
-                      <div className="flex justify-between items-center px-5 py-3 border-b border-border/40 bg-surface/80 backdrop-blur-sm z-20">
-                        <span className="text-small font-semibold text-foreground">
-                          Anonymous Chat
-                        </span>
-                        <div className="h-6 w-6 rounded-full bg-brand flex items-center justify-center text-[10px] font-bold text-brand-foreground">
-                          AU
+                      {/* STATE 0: Campus Wall */}
+                      <div
+                        className={cn(
+                          'absolute inset-0 pt-8 flex flex-col transition-opacity duration-1000',
+                          mockupScreenIndex === 0 ? 'opacity-100 z-20' : 'opacity-0 z-0',
+                        )}
+                      >
+                        <div className="flex justify-between items-center px-5 py-3 border-b border-border/40 bg-surface/80 backdrop-blur-sm">
+                          <span className="text-small font-semibold text-foreground">
+                            Campus Wall
+                          </span>
+                        </div>
+                        <div className="flex-1 flex flex-col gap-4 p-5 overflow-hidden">
+                          <div className="flex flex-col gap-2 p-4 rounded-2xl bg-muted/40 border border-border/40 shadow-sm">
+                            <span className="text-small font-semibold text-brand">
+                              Anonymous User
+                            </span>
+                            <p className="text-caption text-foreground/90">
+                              Does anyone have the notes for the DSA midsem exam next week? 🥺
+                            </p>
+                          </div>
+                          <div className="flex flex-col gap-2 p-4 rounded-2xl bg-muted/40 border border-border/40 shadow-sm">
+                            <span className="text-small font-semibold text-foreground/80">
+                              Anonymous Senior
+                            </span>
+                            <p className="text-caption text-foreground/90">
+                              Check the library drive, folder 'CS-201'. Added yesterday!
+                            </p>
+                          </div>
                         </div>
                       </div>
 
-                      {/* Chat Messages */}
-                      <div className="flex-1 flex flex-col gap-3 p-5 overflow-y-auto">
-                        <div className="self-start max-w-[85%] p-3 rounded-2xl rounded-tl-sm bg-muted text-caption text-foreground">
-                          Hey! Are you studying at the library right now?
+                      {/* STATE 1: Match Radar */}
+                      <div
+                        className={cn(
+                          'absolute inset-0 pt-8 flex flex-col bg-surface transition-opacity duration-1000',
+                          mockupScreenIndex === 1 ? 'opacity-100 z-20' : 'opacity-0 z-0',
+                        )}
+                      >
+                        <div className="flex justify-between items-center px-5 py-3 border-b border-border/40 bg-surface/80 backdrop-blur-sm">
+                          <span className="text-small font-semibold text-brand">Random Match</span>
+                          <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
                         </div>
-                        <div className="self-end max-w-[85%] p-3 rounded-2xl rounded-tr-sm bg-brand text-caption text-brand-foreground">
-                          Yeah, on the 3rd floor. Want to study together?
-                        </div>
-                        <div className="self-start max-w-[85%] p-3 rounded-2xl rounded-tl-sm bg-muted text-caption text-foreground">
-                          Sure! I'll be there in 5 mins. Bring notes! 📚
-                        </div>
-                        <div className="self-end max-w-[85%] p-3 rounded-2xl rounded-tr-sm bg-brand text-caption text-brand-foreground shadow-sm">
-                          Got em right here. See ya soon!
+                        <div className="flex-1 flex flex-col items-center justify-center gap-4">
+                          <div className="relative flex items-center justify-center">
+                            <div className="absolute inset-0 rounded-full border border-brand/40 animate-ping opacity-20 w-24 h-24" />
+                            <div
+                              className="absolute inset-0 rounded-full border border-brand/20 animate-ping opacity-10 w-32 h-32"
+                              style={{ animationDelay: '500ms' }}
+                            />
+                            <div className="h-20 w-20 rounded-full bg-brand/10 border border-brand/30 flex items-center justify-center text-brand font-display text-h2 font-bold z-10 shadow-[0_0_20px_rgba(var(--brand),0.3)]">
+                              U
+                            </div>
+                          </div>
+                          <p className="text-body font-medium text-foreground mt-4 animate-pulse">
+                            Finding a match...
+                          </p>
                         </div>
                       </div>
 
-                      {/* Input Bar */}
-                      <div className="p-4 border-t border-border/40 bg-surface flex gap-2">
-                        <div className="flex-1 h-9 rounded-full bg-muted/60 border border-border/40 px-3 flex items-center text-muted-foreground text-caption">
-                          Message...
+                      {/* STATE 2: Anonymous Chat */}
+                      <div
+                        className={cn(
+                          'absolute inset-0 pt-8 flex flex-col transition-opacity duration-1000',
+                          mockupScreenIndex === 2 ? 'opacity-100 z-20' : 'opacity-0 z-0',
+                        )}
+                      >
+                        <div className="flex justify-between items-center px-5 py-3 border-b border-border/40 bg-surface/80 backdrop-blur-sm">
+                          <span className="text-small font-semibold text-foreground">
+                            Anonymous Chat
+                          </span>
+                          <div className="h-6 w-6 rounded-full bg-brand flex items-center justify-center text-[10px] font-bold text-brand-foreground">
+                            AU
+                          </div>
                         </div>
-                        <div className="h-9 w-9 rounded-full bg-brand flex items-center justify-center text-brand-foreground shadow-sm">
-                          ↑
+                        <div className="flex-1 flex flex-col gap-3 p-5 overflow-hidden">
+                          <div className="self-start max-w-[85%] p-3 rounded-2xl rounded-tl-sm bg-muted text-caption text-foreground">
+                            Hey! Are you studying at the library right now?
+                          </div>
+                          <div className="self-end max-w-[85%] p-3 rounded-2xl rounded-tr-sm bg-brand text-caption text-brand-foreground">
+                            Yeah, on the 3rd floor. Want to study together?
+                          </div>
+                          <div className="self-start max-w-[85%] p-3 rounded-2xl rounded-tl-sm bg-muted text-caption text-foreground">
+                            Sure! I'll be there in 5 mins. Bring notes! 📚
+                          </div>
+                          <div className="self-end max-w-[85%] p-3 rounded-2xl rounded-tr-sm bg-brand text-caption text-brand-foreground shadow-sm">
+                            Got em right here. See ya soon!
+                          </div>
+                        </div>
+                        <div className="p-4 border-t border-border/40 bg-surface flex gap-2">
+                          <div className="flex-1 h-9 rounded-full bg-muted/60 border border-border/40 px-3 flex items-center text-muted-foreground text-caption">
+                            Message...
+                          </div>
+                          <div className="h-9 w-9 rounded-full bg-brand flex items-center justify-center text-brand-foreground shadow-sm">
+                            ↑
+                          </div>
                         </div>
                       </div>
 
                       {/* Home Indicator */}
-                      <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-24 h-1 bg-foreground/20 rounded-full" />
+                      <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-24 h-1 bg-foreground/20 rounded-full z-50" />
                     </div>
                   </div>
 
