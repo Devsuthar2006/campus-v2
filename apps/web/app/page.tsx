@@ -199,237 +199,324 @@ export default function LandingPage() {
           </header>
 
           {/* Hero */}
-          <main className="flex flex-1 flex-col items-center justify-center px-space-5 text-center">
-            <div className="mb-space-7 flex justify-center" aria-label="AnonymousU logo mark">
-              <div className="relative flex h-28 w-28 items-center justify-center">
-                <BrandLogo className="h-24 w-24 hover:scale-105 transition-transform" />
+          <main className="mx-auto flex flex-1 w-full max-w-7xl flex-col items-center justify-center gap-space-8 px-space-5 py-space-6 lg:flex-row lg:justify-between lg:text-left text-center">
+            {/* Left Column: Welcome, tagline, forms */}
+            <div className="flex flex-col items-center lg:items-start lg:w-1/2 w-full">
+              <div
+                className="mb-space-7 flex justify-center lg:justify-start"
+                aria-label="AnonymousU logo mark"
+              >
+                <div className="relative flex h-28 w-28 items-center justify-center">
+                  <BrandLogo className="h-24 w-24 hover:scale-105 transition-transform" />
+                </div>
               </div>
+
+              <h1 className="font-display text-display tracking-tight lg:text-7xl">
+                Anonymous<span className="text-brand">U</span>
+              </h1>
+              <p className="font-premium-cursive text-4xl md:text-5xl lg:text-6xl text-brand mt-space-8 mb-space-2 font-normal drop-shadow-sm select-none">
+                a social media with privacy
+              </p>
+
+              <div className="mt-space-4 w-full max-w-md overflow-hidden">
+                <div
+                  className={cn(
+                    'grid w-[300%] grid-cols-3 items-center transition-transform duration-700 ease-out',
+                  )}
+                  style={{ transform: `translateX(-${panelIndex * (100 / 3)}%)` }}
+                >
+                  {/* ══════════════════════════ PANEL 1: Hero ══════════════════════════ */}
+                  <section className="px-space-2">
+                    <div className="flex flex-col items-center gap-space-4 sm:flex-row sm:justify-center">
+                      <button
+                        type="button"
+                        onClick={() => openPanel('signup')}
+                        className="inline-flex h-12 w-full sm:w-auto items-center justify-center rounded-button bg-brand px-space-8 text-body font-semibold text-brand-foreground transition-transform hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                      >
+                        Sign Up
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => openPanel('signin')}
+                        className="inline-flex h-12 w-full sm:w-auto items-center justify-center rounded-button border border-border/60 bg-transparent px-space-8 text-body font-semibold text-foreground transition-all hover:bg-foreground/5 hover:border-border/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                      >
+                        Sign In
+                      </button>
+                    </div>
+
+                    <div className="mt-space-8 w-full">
+                      <div className="relative mx-auto w-full max-w-3xl">
+                        <svg
+                          className="pointer-events-none absolute left-[8%] right-[8%] top-5 hidden h-6 w-[84%] md:block"
+                          viewBox="0 0 100 24"
+                          preserveAspectRatio="none"
+                          aria-hidden
+                        >
+                          <path
+                            d="M 0 12 C 15 2, 35 22, 50 12 C 65 2, 85 22, 100 12"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                            strokeDasharray="4 4"
+                            className="text-muted-foreground/50"
+                          />
+                        </svg>
+
+                        <div className="grid grid-cols-2 gap-space-4 md:grid-cols-4">
+                          {journeySteps.map(({ label, Icon }, index) => (
+                            <div
+                              key={label}
+                              className={cn(
+                                'flex flex-col items-center gap-space-2 px-space-2 text-center transition-all duration-500',
+                                mounted && activePanel === 'hero'
+                                  ? 'translate-y-0 opacity-100'
+                                  : 'translate-y-2 opacity-0',
+                              )}
+                              style={{ transitionDelay: `${160 + index * 120}ms` }}
+                            >
+                              <span className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border/70 text-brand">
+                                <Icon className="h-4 w-4" strokeWidth={2.2} />
+                              </span>
+                              <p className="text-small text-foreground/95">{label}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+
+                  {/* ══════════════════════════ PANEL 2: Sign Up (Google only) ══════════════════════════ */}
+                  <section className="px-space-2">
+                    <div className="mx-auto flex w-full max-w-md flex-col items-center gap-space-6 px-space-5 py-space-8">
+                      <div className="w-full text-center flex flex-col gap-space-2">
+                        <h2 className="text-h2 font-semibold text-foreground tracking-tight">
+                          Create your account
+                        </h2>
+                        <p className="text-body text-muted-foreground px-space-4">
+                          Use your campus email to join AnonymousU
+                        </p>
+                      </div>
+
+                      {/* Google Sign-in (for Sign Up) */}
+                      <div className="w-full my-space-2">
+                        <GoogleSignInButton onCredential={handleGoogleSignUp} />
+                      </div>
+
+                      <p className="text-caption leading-relaxed text-muted-foreground text-center px-space-2">
+                        Your institutional email verifies you&apos;re a real student.
+                        <br />
+                        We never post or share without your consent.
+                      </p>
+
+                      {pending && (
+                        <p className="text-caption text-muted-foreground mt-space-2">
+                          Creating your account...
+                        </p>
+                      )}
+                      {error && (
+                        <p className="text-caption text-danger mt-space-2" role="alert">
+                          {error}
+                        </p>
+                      )}
+
+                      <div className="flex flex-col items-center gap-space-4 mt-space-4 pt-space-4 border-t border-border/40 w-full">
+                        <p className="text-small text-muted-foreground">
+                          Already have an account?{' '}
+                          <button
+                            type="button"
+                            onClick={() => openPanel('signin')}
+                            className="text-brand hover:text-brand/80 transition-colors font-semibold"
+                          >
+                            Sign In
+                          </button>
+                        </p>
+                        <button
+                          type="button"
+                          onClick={backToHero}
+                          className="text-small font-medium text-muted-foreground transition-colors hover:text-foreground"
+                        >
+                          Back to welcome
+                        </button>
+                      </div>
+                    </div>
+                  </section>
+
+                  {/* ══════════════════════════ PANEL 3: Sign In (Email + Password) ══════════════════════════ */}
+                  <section className="px-space-2">
+                    <div className="mx-auto flex w-full max-w-md flex-col items-center gap-space-6 px-space-5 py-space-8">
+                      <div className="w-full text-center flex flex-col gap-space-2">
+                        <h2 className="text-h2 font-semibold text-foreground tracking-tight">
+                          Welcome back
+                        </h2>
+                        <p className="text-body text-muted-foreground px-space-4">
+                          Sign in with your email and password
+                        </p>
+                      </div>
+
+                      {/* Email + Password Form */}
+                      <form
+                        className="flex w-full flex-col gap-space-4 my-space-2"
+                        onSubmit={handleEmailSignIn}
+                      >
+                        <label className="flex flex-col gap-space-1.5">
+                          <span className="text-small font-medium text-foreground">Email</span>
+                          <input
+                            type="email"
+                            required
+                            value={emailInput}
+                            onChange={(e) => setEmailInput(e.target.value)}
+                            placeholder="you@campus.edu"
+                            className="h-11 rounded-button border border-border bg-surface px-space-4 text-body text-foreground placeholder:text-muted-foreground focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand transition-colors"
+                          />
+                        </label>
+                        <label className="flex flex-col gap-space-1.5">
+                          <span className="text-small font-medium text-foreground">Password</span>
+                          <input
+                            type="password"
+                            required
+                            value={passwordInput}
+                            onChange={(e) => setPasswordInput(e.target.value)}
+                            placeholder="••••••••"
+                            className="h-11 rounded-button border border-border bg-surface px-space-4 text-body text-foreground placeholder:text-muted-foreground focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand transition-colors"
+                          />
+                        </label>
+                        <button
+                          type="submit"
+                          disabled={pending}
+                          className="h-11 mt-space-2 rounded-button bg-brand px-space-6 text-body font-semibold text-brand-foreground transition-transform hover:scale-[1.02] disabled:opacity-60"
+                        >
+                          {pending ? 'Signing in…' : 'Sign In'}
+                        </button>
+                      </form>
+
+                      {/* Divider */}
+                      <div className="relative flex items-center justify-center py-2 w-full">
+                        <div className="absolute inset-0 flex items-center">
+                          <span className="w-full border-t border-border/40" />
+                        </div>
+                        <span className="relative bg-background px-4 text-caption font-medium text-muted-foreground uppercase tracking-wider select-none">
+                          or
+                        </span>
+                      </div>
+
+                      {/* Google sign-in fallback (for users who skipped password setup) */}
+                      <div className="w-full">
+                        <GoogleSignInButton onCredential={handleGoogleSignIn} />
+                      </div>
+
+                      <p className="text-caption text-muted-foreground text-center px-space-4 leading-relaxed">
+                        Use Google if you haven&apos;t set a password yet.
+                      </p>
+
+                      {error && (
+                        <p className="text-caption text-danger mt-space-2" role="alert">
+                          {error}
+                        </p>
+                      )}
+
+                      <div className="flex flex-col items-center gap-space-4 mt-space-4 pt-space-4 border-t border-border/40 w-full">
+                        <p className="text-small text-muted-foreground">
+                          Don&apos;t have an account?{' '}
+                          <button
+                            type="button"
+                            onClick={() => openPanel('signup')}
+                            className="text-brand hover:text-brand/80 transition-colors font-semibold"
+                          >
+                            Sign Up
+                          </button>
+                        </p>
+                        <button
+                          type="button"
+                          onClick={backToHero}
+                          className="text-small font-medium text-muted-foreground transition-colors hover:text-foreground"
+                        >
+                          Back to welcome
+                        </button>
+                      </div>
+                    </div>
+                  </section>
+                </div>
+              </div>
+
+              {/* Close Left Column */}
             </div>
 
-            <h1 className="font-display text-display tracking-tight">
-              Anonymous<span className="text-brand">U</span>
-            </h1>
-            <p className="font-premium-cursive text-4xl md:text-5xl lg:text-6xl text-brand mt-space-8 mb-space-2 font-normal drop-shadow-sm select-none">
-              a social media with privacy
-            </p>
+            {/* Right Column: 3D Isometric Screen Showcase */}
+            <div className="hidden lg:flex lg:w-1/2 items-center justify-center relative min-h-[550px] w-full isometric-perspective">
+              {/* background decorative glowing blobs */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[350px] w-[350px] rounded-full bg-brand/10 blur-[80px]" />
 
-            <div className="mt-space-4 w-full max-w-3xl overflow-hidden">
-              <div
-                className={cn(
-                  'grid w-[300%] grid-cols-3 items-center transition-transform duration-700 ease-out',
-                )}
-                style={{ transform: `translateX(-${panelIndex * (100 / 3)}%)` }}
-              >
-                {/* ══════════════════════════ PANEL 1: Hero ══════════════════════════ */}
-                <section className="px-space-2">
-                  <div className="flex flex-col items-center gap-space-4 sm:flex-row sm:justify-center">
-                    <button
-                      type="button"
-                      onClick={() => openPanel('signup')}
-                      className="inline-flex h-12 w-full sm:w-auto items-center justify-center rounded-button bg-brand px-space-8 text-body font-semibold text-brand-foreground transition-transform hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                    >
-                      Sign Up
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => openPanel('signin')}
-                      className="inline-flex h-12 w-full sm:w-auto items-center justify-center rounded-button border border-border/60 bg-transparent px-space-8 text-body font-semibold text-foreground transition-all hover:bg-foreground/5 hover:border-border/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                    >
-                      Sign In
-                    </button>
+              {/* 3D Stack */}
+              <div className="relative w-[300px] h-[450px] preserve-3d">
+                {/* CARD 3: Match Page (Bottom-most layer) */}
+                <div className="absolute inset-0 bg-surface border border-border/80 shadow-[10px_20px_50px_rgba(0,0,0,0.15)] rounded-[24px] overflow-hidden isometric-card isometric-float-3 translate-x-[-40px] translate-y-[40px] z-10 flex flex-col p-5">
+                  {/* Mockup matching content */}
+                  <div className="flex justify-between items-center pb-2 border-b border-border/40">
+                    <span className="text-caption font-semibold text-brand">Random Match</span>
+                    <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
                   </div>
-
-                  <div className="mt-space-8 w-full">
-                    <div className="relative mx-auto w-full max-w-3xl">
-                      <svg
-                        className="pointer-events-none absolute left-[8%] right-[8%] top-5 hidden h-6 w-[84%] md:block"
-                        viewBox="0 0 100 24"
-                        preserveAspectRatio="none"
-                        aria-hidden
-                      >
-                        <path
-                          d="M 0 12 C 15 2, 35 22, 50 12 C 65 2, 85 22, 100 12"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="1.5"
-                          strokeDasharray="4 4"
-                          className="text-muted-foreground/50"
-                        />
-                      </svg>
-
-                      <div className="grid grid-cols-2 gap-space-4 md:grid-cols-4">
-                        {journeySteps.map(({ label, Icon }, index) => (
-                          <div
-                            key={label}
-                            className={cn(
-                              'flex flex-col items-center gap-space-2 px-space-2 text-center transition-all duration-500',
-                              mounted && activePanel === 'hero'
-                                ? 'translate-y-0 opacity-100'
-                                : 'translate-y-2 opacity-0',
-                            )}
-                            style={{ transitionDelay: `${160 + index * 120}ms` }}
-                          >
-                            <span className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border/70 text-brand">
-                              <Icon className="h-4 w-4" strokeWidth={2.2} />
-                            </span>
-                            <p className="text-small text-foreground/95">{label}</p>
-                          </div>
-                        ))}
+                  <div className="flex-1 flex flex-col items-center justify-center gap-3">
+                    <div className="h-16 w-16 rounded-full bg-brand/10 border border-brand/20 flex items-center justify-center text-brand font-display text-h3 font-bold">
+                      U
+                    </div>
+                    <p className="text-small font-medium text-foreground">Matched with Senior</p>
+                    <div className="flex gap-2 mt-2 w-full">
+                      <div className="flex-1 h-8 rounded-lg bg-brand text-brand-foreground text-caption font-bold flex items-center justify-center">
+                        Chat Now
+                      </div>
+                      <div className="h-8 w-8 rounded-lg border border-border/60 flex items-center justify-center text-muted-foreground">
+                        +
                       </div>
                     </div>
                   </div>
-                </section>
+                </div>
 
-                {/* ══════════════════════════ PANEL 2: Sign Up (Google only) ══════════════════════════ */}
-                <section className="px-space-2">
-                  <div className="mx-auto flex w-full max-w-md flex-col items-center gap-space-6 px-space-5 py-space-8">
-                    <div className="w-full text-center flex flex-col gap-space-2">
-                      <h2 className="text-h2 font-semibold text-foreground tracking-tight">
-                        Create your account
-                      </h2>
-                      <p className="text-body text-muted-foreground px-space-4">
-                        Use your campus email to join AnonymousU
-                      </p>
-                    </div>
-
-                    {/* Google Sign-in (for Sign Up) */}
-                    <div className="w-full my-space-2">
-                      <GoogleSignInButton onCredential={handleGoogleSignUp} />
-                    </div>
-
-                    <p className="text-caption leading-relaxed text-muted-foreground text-center px-space-2">
-                      Your institutional email verifies you&apos;re a real student.
-                      <br />
-                      We never post or share without your consent.
-                    </p>
-
-                    {pending && (
-                      <p className="text-caption text-muted-foreground mt-space-2">
-                        Creating your account...
-                      </p>
-                    )}
-                    {error && (
-                      <p className="text-caption text-danger mt-space-2" role="alert">
-                        {error}
-                      </p>
-                    )}
-
-                    <div className="flex flex-col items-center gap-space-4 mt-space-4 pt-space-4 border-t border-border/40 w-full">
-                      <p className="text-small text-muted-foreground">
-                        Already have an account?{' '}
-                        <button
-                          type="button"
-                          onClick={() => openPanel('signin')}
-                          className="text-brand hover:text-brand/80 transition-colors font-semibold"
-                        >
-                          Sign In
-                        </button>
-                      </p>
-                      <button
-                        type="button"
-                        onClick={backToHero}
-                        className="text-small font-medium text-muted-foreground transition-colors hover:text-foreground"
-                      >
-                        Back to welcome
-                      </button>
-                    </div>
+                {/* CARD 2: Campus Wall (Middle layer) */}
+                <div className="absolute inset-0 bg-surface border border-border/80 shadow-[15px_25px_60px_rgba(0,0,0,0.2)] rounded-[24px] overflow-hidden isometric-card isometric-float-2 z-20 flex flex-col p-5">
+                  <div className="flex justify-between items-center pb-2 border-b border-border/40">
+                    <span className="text-caption font-semibold text-foreground">Campus Wall</span>
+                    <span className="text-caption text-muted-foreground text-small">IIT Delhi</span>
                   </div>
-                </section>
-
-                {/* ══════════════════════════ PANEL 3: Sign In (Email + Password) ══════════════════════════ */}
-                <section className="px-space-2">
-                  <div className="mx-auto flex w-full max-w-md flex-col items-center gap-space-6 px-space-5 py-space-8">
-                    <div className="w-full text-center flex flex-col gap-space-2">
-                      <h2 className="text-h2 font-semibold text-foreground tracking-tight">
-                        Welcome back
-                      </h2>
-                      <p className="text-body text-muted-foreground px-space-4">
-                        Sign in with your email and password
+                  <div className="flex-1 flex flex-col gap-3 py-3 overflow-hidden">
+                    <div className="flex flex-col gap-1.5 p-2.5 rounded-xl bg-muted/40 border border-border/40">
+                      <span className="text-small font-semibold text-brand">Anonymous User</span>
+                      <p className="text-caption text-foreground/90 leading-tight">
+                        Does anyone have the notes for the DSA midsem exam next week? 🥺
                       </p>
                     </div>
-
-                    {/* Email + Password Form */}
-                    <form
-                      className="flex w-full flex-col gap-space-4 my-space-2"
-                      onSubmit={handleEmailSignIn}
-                    >
-                      <label className="flex flex-col gap-space-1.5">
-                        <span className="text-small font-medium text-foreground">Email</span>
-                        <input
-                          type="email"
-                          required
-                          value={emailInput}
-                          onChange={(e) => setEmailInput(e.target.value)}
-                          placeholder="you@campus.edu"
-                          className="h-11 rounded-button border border-border bg-surface px-space-4 text-body text-foreground placeholder:text-muted-foreground focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand transition-colors"
-                        />
-                      </label>
-                      <label className="flex flex-col gap-space-1.5">
-                        <span className="text-small font-medium text-foreground">Password</span>
-                        <input
-                          type="password"
-                          required
-                          value={passwordInput}
-                          onChange={(e) => setPasswordInput(e.target.value)}
-                          placeholder="••••••••"
-                          className="h-11 rounded-button border border-border bg-surface px-space-4 text-body text-foreground placeholder:text-muted-foreground focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand transition-colors"
-                        />
-                      </label>
-                      <button
-                        type="submit"
-                        disabled={pending}
-                        className="h-11 mt-space-2 rounded-button bg-brand px-space-6 text-body font-semibold text-brand-foreground transition-transform hover:scale-[1.02] disabled:opacity-60"
-                      >
-                        {pending ? 'Signing in…' : 'Sign In'}
-                      </button>
-                    </form>
-
-                    {/* Divider */}
-                    <div className="relative flex items-center justify-center py-2 w-full">
-                      <div className="absolute inset-0 flex items-center">
-                        <span className="w-full border-t border-border/40" />
-                      </div>
-                      <span className="relative bg-background px-4 text-caption font-medium text-muted-foreground uppercase tracking-wider select-none">
-                        or
+                    <div className="flex flex-col gap-1.5 p-2.5 rounded-xl bg-muted/40 border border-border/40">
+                      <span className="text-small font-semibold text-foreground/80">
+                        Anonymous Senior
                       </span>
-                    </div>
-
-                    {/* Google sign-in fallback (for users who skipped password setup) */}
-                    <div className="w-full">
-                      <GoogleSignInButton onCredential={handleGoogleSignIn} />
-                    </div>
-
-                    <p className="text-caption text-muted-foreground text-center px-space-4 leading-relaxed">
-                      Use Google if you haven&apos;t set a password yet.
-                    </p>
-
-                    {error && (
-                      <p className="text-caption text-danger mt-space-2" role="alert">
-                        {error}
+                      <p className="text-caption text-foreground/90 leading-tight">
+                        Check the library drive, folder 'CS-201'. Added yesterday!
                       </p>
-                    )}
-
-                    <div className="flex flex-col items-center gap-space-4 mt-space-4 pt-space-4 border-t border-border/40 w-full">
-                      <p className="text-small text-muted-foreground">
-                        Don&apos;t have an account?{' '}
-                        <button
-                          type="button"
-                          onClick={() => openPanel('signup')}
-                          className="text-brand hover:text-brand/80 transition-colors font-semibold"
-                        >
-                          Sign Up
-                        </button>
-                      </p>
-                      <button
-                        type="button"
-                        onClick={backToHero}
-                        className="text-small font-medium text-muted-foreground transition-colors hover:text-foreground"
-                      >
-                        Back to welcome
-                      </button>
                     </div>
                   </div>
-                </section>
+                </div>
+
+                {/* CARD 1: Chat Message View (Top-most layer) */}
+                <div className="absolute inset-0 bg-surface border border-border/85 shadow-[20px_30px_70px_rgba(0,0,0,0.25)] rounded-[24px] overflow-hidden isometric-card isometric-float-1 translate-x-[40px] translate-y-[-40px] z-30 flex flex-col p-5">
+                  <div className="flex items-center gap-2 pb-2 border-b border-border/40">
+                    <div className="h-6 w-6 rounded-full bg-brand flex items-center justify-center text-[10px] font-bold text-brand-foreground">
+                      AU
+                    </div>
+                    <span className="text-caption font-semibold text-foreground">
+                      Anonymous Chat
+                    </span>
+                  </div>
+                  <div className="flex-1 flex flex-col gap-2 py-3">
+                    <div className="self-start max-w-[85%] p-2.5 rounded-lg bg-muted text-caption text-foreground">
+                      Hey! Are you studying at the library right now?
+                    </div>
+                    <div className="self-end max-w-[85%] p-2.5 rounded-lg bg-brand text-caption text-brand-foreground">
+                      Yeah, on the 3rd floor. Want to study together?
+                    </div>
+                    <div className="self-start max-w-[85%] p-2.5 rounded-lg bg-muted text-caption text-foreground">
+                      Sure! I'll be there in 5 mins.
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </main>
