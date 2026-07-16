@@ -19,7 +19,7 @@ import { Globe3D } from '../../components/Globe3D';
 import { SearchingGraphics } from '../../components/SearchingGraphics';
 import { Avatar } from '../../components/Avatar';
 import { Button } from '../../components/ui/Button';
-import { MoreHorizontal, Sparkles, Users, Check } from 'lucide-react';
+import { MoreHorizontal, Sparkles, Users, Check, UserPlus, UserCheck } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 const MarsIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -313,14 +313,65 @@ export default function MatchPage() {
                         )}
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={() => setShowOptions(true)}
-                        className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors rounded-full flex items-center justify-center select-none"
-                        aria-label="Options"
-                      >
-                        <MoreHorizontal className="h-5 w-5" />
-                      </button>
+                      <div className="flex items-center gap-space-2">
+                        {partner && (
+                          <div className="flex items-center">
+                            {friendState === 'idle' && (
+                              <button
+                                type="button"
+                                onClick={addFriend}
+                                className="p-2 text-brand hover:text-brand-hover hover:bg-brand/10 transition-colors rounded-full flex items-center justify-center select-none"
+                                aria-label="Add Friend"
+                                title="Add Friend"
+                              >
+                                <UserPlus className="h-5 w-5" />
+                              </button>
+                            )}
+                            {friendState === 'sent' && (
+                              <button
+                                type="button"
+                                disabled
+                                className="p-2 text-muted-foreground bg-muted/10 rounded-full flex items-center justify-center select-none cursor-not-allowed"
+                                aria-label="Friend request sent"
+                                title="Friend request sent"
+                              >
+                                <UserCheck className="h-5 w-5" />
+                              </button>
+                            )}
+                            {friendState === 'incoming' && (
+                              <button
+                                type="button"
+                                onClick={acceptFriend}
+                                className="p-2 text-success hover:text-success/80 hover:bg-success/10 transition-colors rounded-full flex items-center justify-center select-none animate-bounce"
+                                aria-label="Accept Friend Request"
+                                title="Accept Friend Request"
+                              >
+                                <UserPlus className="h-5 w-5 text-success" />
+                              </button>
+                            )}
+                            {friendState === 'accepted' && (
+                              <button
+                                type="button"
+                                disabled
+                                className="p-2 text-brand/80 bg-brand/5 rounded-full flex items-center justify-center select-none cursor-not-allowed"
+                                aria-label="Already friends"
+                                title="Already friends"
+                              >
+                                <Check className="h-5 w-5" />
+                              </button>
+                            )}
+                          </div>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => setShowOptions(true)}
+                          className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors rounded-full flex items-center justify-center select-none"
+                          aria-label="Options"
+                        >
+                          <MoreHorizontal className="h-5 w-5" />
+                        </button>
+                      </div>
                     </div>
                   </div>
 
