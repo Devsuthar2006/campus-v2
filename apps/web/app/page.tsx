@@ -192,7 +192,7 @@ export default function LandingPage() {
           )}
         >
           {/* Top bar */}
-          <header className="flex items-center justify-between px-space-5 pt-space-10 pb-space-4 md:px-space-12 md:pt-space-12">
+          <header className="flex items-center justify-between px-space-5 py-space-5 md:px-space-12">
             <span className="font-display text-h3 font-bold tracking-tight">
               Anonymous<span className="text-brand">U</span>
             </span>
@@ -209,11 +209,11 @@ export default function LandingPage() {
             <h1 className="font-display text-display tracking-tight">
               Anonymous<span className="text-brand">U</span>
             </h1>
-            <p className="font-premium-cursive text-4xl md:text-5xl lg:text-6xl text-brand mt-space-5 mb-space-6 font-normal drop-shadow-sm select-none">
+            <p className="font-premium-cursive text-4xl md:text-5xl lg:text-6xl text-brand mt-space-8 mb-space-2 font-normal drop-shadow-sm select-none">
               a social media with privacy
             </p>
 
-            <div className="mt-space-8 w-full max-w-3xl overflow-hidden">
+            <div className="mt-space-4 w-full max-w-3xl overflow-hidden">
               <div
                 className={cn(
                   'grid w-[300%] grid-cols-3 items-center transition-transform duration-700 ease-out',
