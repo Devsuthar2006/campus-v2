@@ -109,3 +109,18 @@ export const CompleteProfileSchema = z.object({
   password: z.string().min(8, 'Password must be at least 8 characters.').max(128).optional(),
 });
 export type CompleteProfileInput = z.infer<typeof CompleteProfileSchema>;
+
+/** PUT /users/me/password — set or change password from Settings. */
+export const SetPasswordSchema = z.object({
+  /** Required only when changing an existing password. */
+  currentPassword: z.string().min(1).max(128).optional(),
+  newPassword: z.string().min(8, 'Password must be at least 8 characters.').max(128),
+  /** Username to set (only when user has no username yet). */
+  username: z
+    .string()
+    .min(3, 'Username must be at least 3 characters.')
+    .max(30, 'Username must be at most 30 characters.')
+    .regex(/^[a-z0-9_]+$/, 'Only lowercase letters, numbers, and underscores.')
+    .optional(),
+});
+export type SetPasswordInput = z.infer<typeof SetPasswordSchema>;

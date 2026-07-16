@@ -5,6 +5,7 @@ import type {
   UpdateProfileInput,
   UpdatePrivacyInput,
   CompleteProfileInput,
+  SetPasswordInput,
   Interest,
 } from '@campusly/shared-types';
 import { NotFoundError, ForbiddenError, ConflictError, ValidationError } from '../domain/errors.js';
@@ -12,7 +13,7 @@ import type { PrivacySettingsRow, UserRow, ProfileRow } from '../db/schema.js';
 import { userRepository } from '../repositories/userRepository.js';
 import { profileRepository } from '../repositories/profileRepository.js';
 import { mediaRepository } from '../repositories/mediaRepository.js';
-import { hashPassword } from '../lib/crypto.js';
+import { hashPassword, verifyPassword } from '../lib/crypto.js';
 
 function toPrivacy(row: PrivacySettingsRow): PrivacySettings {
   return {
@@ -111,7 +112,7 @@ export const profileService = {
     });
     if (input.interests) await profileRepository.replaceInterests(userId, input.interests);
 
-    // Set credentials (username + password) if provided during onboarding.
+    // Set credentials (username + password) if provided during onboarding (optional — can be set later in Settings).
     if (input.username && input.password) {
       // Validate username is unique before saving.
       const existing = await userRepository.findByUsername(input.username);
@@ -126,6 +127,7 @@ export const profileService = {
     }
 
     // Final step: the account becomes active and unlocks the product.
+    // Username and password are NOT required — the user can set them later in Settings.
     await userRepository.updateStatus(userId, 'active');
     return this.getMyProfile(userId);
   },
@@ -202,6 +204,52 @@ export const profileService = {
       }
     }
     return list;
+  },
+
+  /**
+   * Set or change the user's password from the Settings page.
+   * - If user has NO password: sets username + password (no currentPassword needed).
+   * - If user HAS a password: requires currentPassword to change it.
+   */
+  async setOrChangePassword(userId: string, input: SetPasswordInput): Promise<void> {
+    const user = await userRepository.findById(userId);
+    if (!user) throw new NotFoundError('Account not found.');
+
+    const hasPassword = Boolean(user.passwordHash);
+
+    if (hasPassword) {
+      // Changing existing password — require current password.
+      if (!input.currentPassword) {
+        throw new ValidationError('Current password is required to change your password.', [
+          { field: 'currentPassword', issue: 'required' },
+        ]);
+      }
+      const valid = await verifyPassword(input.currentPassword, user.passwordHash!);
+      if (!valid) {
+        throw new ForbiddenError('Current password is incorrect.');
+      }
+      const hashed = await hashPassword(input.newPassword);
+      await userRepository.setCredentials(userId, { passwordHash: hashed });
+    } else {
+      // Setting password for the first time — username is required if not already set.
+      if (!user.username && !input.username) {
+        throw new ValidationError(
+          'A username is required when setting your password for the first time.',
+          [{ field: 'username', issue: 'required' }],
+        );
+      }
+      if (input.username) {
+        const existing = await userRepository.findByUsername(input.username.toLowerCase());
+        if (existing && existing.id !== userId) {
+          throw new ConflictError('This username is already taken.');
+        }
+      }
+      const hashed = await hashPassword(input.newPassword);
+      await userRepository.setCredentials(userId, {
+        ...(input.username ? { username: input.username.toLowerCase() } : {}),
+        passwordHash: hashed,
+      });
+    }
   },
 };
 

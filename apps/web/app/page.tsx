@@ -13,20 +13,23 @@ import { BrandLogo } from '../components/BrandLogo';
 /**
  * Public landing / welcome page — the first impression for a visitor. Premium
  * dark hero with an animated "constellation" backdrop (students connecting),
- * the AnonymousU wordmark in the display face, and a single clear call to action.
- * Signed-in users are sent straight into the app.
+ * the AnonymousU wordmark in the display face, and clear separated CTAs.
+ *
+ * Flow:
+ * - "Sign Up" → Google-only panel (creates account → onboarding)
+ * - "Sign In" → Email + password panel (for returning users)
  */
 export default function LandingPage() {
   const { user, isLoading, loginWithGoogle, loginWithEmail } = useAuth();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
-  const [showSignIn, setShowSignIn] = useState(false);
+  const [activePanel, setActivePanel] = useState<'hero' | 'signup' | 'signin'>('hero');
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // Email+password form state
+  // Email+password form state (sign-in only)
   const [emailInput, setEmailInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
-  const [showEmailForm, setShowEmailForm] = useState(false);
+
   const journeySteps = [
     { label: 'Anonymous chat', Icon: MessageCircle },
     { label: 'Reveal', Icon: Eye },
@@ -47,12 +50,14 @@ export default function LandingPage() {
     if (typeof window === 'undefined') return;
     const currentView = new URLSearchParams(window.location.search).get('view');
     if (currentView === 'signin') {
-      setShowSignIn(true);
+      setActivePanel('signin');
+    } else if (currentView === 'signup') {
+      setActivePanel('signup');
     }
   }, []);
 
   const setViewInUrl = useCallback(
-    (view: 'signin' | null, mode: 'push' | 'replace' = 'replace') => {
+    (view: 'signin' | 'signup' | null, mode: 'push' | 'replace' = 'replace') => {
       if (typeof window === 'undefined') return;
       const url = new URL(window.location.href);
       if (view) {
@@ -75,30 +80,59 @@ export default function LandingPage() {
 
     const syncViewFromUrl = () => {
       const currentView = new URLSearchParams(window.location.search).get('view');
-      setShowSignIn(currentView === 'signin');
-      if (currentView !== 'signin') {
-        setError(null);
+      if (currentView === 'signin') {
+        setActivePanel('signin');
+      } else if (currentView === 'signup') {
+        setActivePanel('signup');
+      } else {
+        setActivePanel('hero');
       }
+      setError(null);
     };
 
     window.addEventListener('popstate', syncViewFromUrl);
     return () => window.removeEventListener('popstate', syncViewFromUrl);
   }, []);
 
-  const openSignIn = useCallback(() => {
-    if (showSignIn) return;
-    setShowSignIn(true);
-    setViewInUrl('signin', 'push');
-  }, [setViewInUrl, showSignIn]);
+  const openPanel = useCallback(
+    (panel: 'signup' | 'signin') => {
+      if (activePanel === panel) return;
+      setActivePanel(panel);
+      setError(null);
+      setViewInUrl(panel, 'push');
+    },
+    [setViewInUrl, activePanel],
+  );
 
-  const closeSignIn = useCallback(() => {
-    setShowSignIn(false);
-    setShowEmailForm(false);
+  const backToHero = useCallback(() => {
+    setActivePanel('hero');
     setError(null);
     setViewInUrl(null, 'push');
   }, [setViewInUrl]);
 
-  const handleCredential = useCallback(
+  /** Google credential handler (Sign Up flow). */
+  const handleGoogleSignUp = useCallback(
+    (credential: string) => {
+      setError(null);
+      setPending(true);
+      loginWithGoogle(credential)
+        .then((signedInUser) => {
+          router.replace(signedInUser.profileComplete ? '/match' : '/onboarding');
+        })
+        .catch((err: unknown) => {
+          setError(
+            err instanceof ApiClientError
+              ? err.message
+              : 'Something went wrong signing you up. Please try again.',
+          );
+        })
+        .finally(() => setPending(false));
+    },
+    [loginWithGoogle, router],
+  );
+
+  /** Google credential handler (Sign In flow — for users who skipped password setup). */
+  const handleGoogleSignIn = useCallback(
     (credential: string) => {
       setError(null);
       setPending(true);
@@ -118,9 +152,30 @@ export default function LandingPage() {
     [loginWithGoogle, router],
   );
 
+  /** Email+password handler (Sign In flow). */
+  const handleEmailSignIn = useCallback(
+    (e: FormEvent) => {
+      e.preventDefault();
+      setError(null);
+      setPending(true);
+      loginWithEmail(emailInput.trim(), passwordInput)
+        .then((signedInUser) => {
+          router.replace(signedInUser.profileComplete ? '/match' : '/onboarding');
+        })
+        .catch((err: unknown) => {
+          setError(err instanceof ApiClientError ? err.message : 'Invalid email or password.');
+        })
+        .finally(() => setPending(false));
+    },
+    [loginWithEmail, emailInput, passwordInput, router],
+  );
+
   // While auth resolves (or a signed-in user is being redirected), render the
   // dark canvas only — avoids a flash of marketing content for logged-in users.
   const showContent = !isLoading && !user;
+
+  // Calculate panel position: 0 = hero, 1 = signup, 2 = signin
+  const panelIndex = activePanel === 'hero' ? 0 : activePanel === 'signup' ? 1 : 2;
 
   return (
     <div className="dark relative min-h-screen overflow-hidden bg-background text-foreground">
@@ -158,18 +213,26 @@ export default function LandingPage() {
             <div className="mt-space-8 w-full max-w-3xl overflow-hidden">
               <div
                 className={cn(
-                  'grid w-[200%] grid-cols-2 transition-transform duration-700 ease-out',
-                  showSignIn ? '-translate-x-1/2' : 'translate-x-0',
+                  'grid w-[300%] grid-cols-3 transition-transform duration-700 ease-out',
                 )}
+                style={{ transform: `translateX(-${panelIndex * (100 / 3)}%)` }}
               >
+                {/* ══════════════════════════ PANEL 1: Hero ══════════════════════════ */}
                 <section className="px-space-2">
-                  <div className="flex flex-col items-center gap-space-3 sm:justify-center">
+                  <div className="flex flex-col items-center gap-space-4 sm:flex-row sm:justify-center">
                     <button
                       type="button"
-                      onClick={openSignIn}
-                      className="inline-flex h-12 items-center justify-center rounded-button bg-brand px-space-8 text-body font-semibold text-brand-foreground transition-transform hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                      onClick={() => openPanel('signup')}
+                      className="inline-flex h-12 w-full sm:w-auto items-center justify-center rounded-button bg-brand px-space-8 text-body font-semibold text-brand-foreground transition-transform hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                     >
-                      Enter AnonymousU
+                      Sign Up
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openPanel('signin')}
+                      className="inline-flex h-12 w-full sm:w-auto items-center justify-center rounded-button border border-border/60 bg-transparent px-space-8 text-body font-semibold text-foreground transition-all hover:bg-foreground/5 hover:border-border/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                    >
+                      Sign In
                     </button>
                   </div>
 
@@ -197,7 +260,7 @@ export default function LandingPage() {
                             key={label}
                             className={cn(
                               'flex flex-col items-center gap-space-2 px-space-2 text-center transition-all duration-500',
-                              mounted && !showSignIn
+                              mounted && activePanel === 'hero'
                                 ? 'translate-y-0 opacity-100'
                                 : 'translate-y-2 opacity-0',
                             )}
@@ -214,116 +277,29 @@ export default function LandingPage() {
                   </div>
                 </section>
 
+                {/* ══════════════════════════ PANEL 2: Sign Up (Google only) ══════════════════════════ */}
                 <section className="px-space-2">
                   <div className="mx-auto flex w-full max-w-md flex-col items-center gap-space-4 px-space-5 py-space-6 text-left">
                     <div className="w-full text-center">
-                      <h2 className="text-h2 font-semibold text-foreground">
-                        Sign in to your campus
-                      </h2>
+                      <h2 className="text-h2 font-semibold text-foreground">Create your account</h2>
+                      <p className="mt-space-2 text-body text-muted-foreground">
+                        Use your campus email to join AnonymousU
+                      </p>
                     </div>
 
-                    {/* Sign-In Actions (Vertical Stack) */}
-                    <div className="w-full flex flex-col gap-space-4">
-                      {!showEmailForm ? (
-                        <>
-                          {/* Google Sign-in */}
-                          <div className="w-full">
-                            <GoogleSignInButton onCredential={handleCredential} />
-                          </div>
-
-                          {/* Divider */}
-                          <div className="relative flex items-center justify-center py-1">
-                            <div className="absolute inset-0 flex items-center">
-                              <span className="w-full border-t border-border/40" />
-                            </div>
-                            <span className="relative bg-background px-3 text-caption text-muted-foreground select-none">
-                              or
-                            </span>
-                          </div>
-
-                          {/* Continue with Email Button */}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setShowEmailForm(true);
-                              setError(null);
-                            }}
-                            className="flex h-10 w-full items-center justify-center gap-space-2 rounded-full border border-border/60 bg-transparent px-space-4 text-body font-medium text-foreground transition-all hover:bg-foreground/5 hover:border-border/90 active:scale-[0.99] select-none"
-                          >
-                            <Mail className="h-4 w-4 text-muted-foreground" />
-                            <span>Continue with email</span>
-                          </button>
-                        </>
-                      ) : (
-                        /* Email + Password Form */
-                        <form
-                          className="flex w-full flex-col gap-space-3"
-                          onSubmit={(e: FormEvent) => {
-                            e.preventDefault();
-                            setError(null);
-                            setPending(true);
-                            loginWithEmail(emailInput.trim(), passwordInput)
-                              .then((signedInUser) => {
-                                router.replace(
-                                  signedInUser.profileComplete ? '/match' : '/onboarding',
-                                );
-                              })
-                              .catch((err: unknown) => {
-                                setError(
-                                  err instanceof ApiClientError
-                                    ? err.message
-                                    : 'Invalid email or password.',
-                                );
-                              })
-                              .finally(() => setPending(false));
-                          }}
-                        >
-                          <label className="flex flex-col gap-space-1">
-                            <span className="text-small font-medium text-foreground">Email</span>
-                            <input
-                              type="email"
-                              required
-                              value={emailInput}
-                              onChange={(e) => setEmailInput(e.target.value)}
-                              placeholder="you@campus.edu"
-                              className="h-10 rounded-button border border-border bg-surface px-space-3 text-body text-foreground placeholder:text-muted-foreground focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
-                            />
-                          </label>
-                          <label className="flex flex-col gap-space-1">
-                            <span className="text-small font-medium text-foreground">Password</span>
-                            <input
-                              type="password"
-                              required
-                              value={passwordInput}
-                              onChange={(e) => setPasswordInput(e.target.value)}
-                              placeholder="••••••••"
-                              className="h-10 rounded-button border border-border bg-surface px-space-3 text-body text-foreground placeholder:text-muted-foreground focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
-                            />
-                          </label>
-                          <button
-                            type="submit"
-                            disabled={pending}
-                            className="h-10 rounded-button bg-brand px-space-6 text-body font-semibold text-brand-foreground transition-transform hover:scale-[1.02] disabled:opacity-60"
-                          >
-                            {pending ? 'Signing in…' : 'Sign In'}
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setShowEmailForm(false);
-                              setError(null);
-                            }}
-                            className="mt-2 text-caption text-muted-foreground hover:text-foreground transition-colors self-center"
-                          >
-                            Back to other options
-                          </button>
-                        </form>
-                      )}
+                    {/* Google Sign-in (for Sign Up) */}
+                    <div className="w-full">
+                      <GoogleSignInButton onCredential={handleGoogleSignUp} />
                     </div>
+
+                    <p className="text-caption text-muted-foreground text-center">
+                      Your institutional email verifies you&apos;re a real student.
+                      <br />
+                      We never post or share without your consent.
+                    </p>
 
                     {pending && (
-                      <p className="text-caption text-muted-foreground">Signing you in...</p>
+                      <p className="text-caption text-muted-foreground">Creating your account...</p>
                     )}
                     {error && (
                       <p className="text-caption text-danger" role="alert">
@@ -331,13 +307,115 @@ export default function LandingPage() {
                       </p>
                     )}
 
-                    <button
-                      type="button"
-                      onClick={closeSignIn}
-                      className="text-small text-muted-foreground transition-colors hover:text-foreground"
-                    >
-                      Back to welcome
-                    </button>
+                    <div className="flex flex-col items-center gap-space-2 mt-space-2">
+                      <p className="text-small text-muted-foreground">
+                        Already have an account?{' '}
+                        <button
+                          type="button"
+                          onClick={() => openPanel('signin')}
+                          className="text-brand hover:text-brand/80 transition-colors font-medium"
+                        >
+                          Sign In
+                        </button>
+                      </p>
+                      <button
+                        type="button"
+                        onClick={backToHero}
+                        className="text-small text-muted-foreground transition-colors hover:text-foreground"
+                      >
+                        Back to welcome
+                      </button>
+                    </div>
+                  </div>
+                </section>
+
+                {/* ══════════════════════════ PANEL 3: Sign In (Email + Password) ══════════════════════════ */}
+                <section className="px-space-2">
+                  <div className="mx-auto flex w-full max-w-md flex-col items-center gap-space-4 px-space-5 py-space-6 text-left">
+                    <div className="w-full text-center">
+                      <h2 className="text-h2 font-semibold text-foreground">Welcome back</h2>
+                      <p className="mt-space-2 text-body text-muted-foreground">
+                        Sign in with your email and password
+                      </p>
+                    </div>
+
+                    {/* Email + Password Form */}
+                    <form className="flex w-full flex-col gap-space-3" onSubmit={handleEmailSignIn}>
+                      <label className="flex flex-col gap-space-1">
+                        <span className="text-small font-medium text-foreground">Email</span>
+                        <input
+                          type="email"
+                          required
+                          value={emailInput}
+                          onChange={(e) => setEmailInput(e.target.value)}
+                          placeholder="you@campus.edu"
+                          className="h-10 rounded-button border border-border bg-surface px-space-3 text-body text-foreground placeholder:text-muted-foreground focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                        />
+                      </label>
+                      <label className="flex flex-col gap-space-1">
+                        <span className="text-small font-medium text-foreground">Password</span>
+                        <input
+                          type="password"
+                          required
+                          value={passwordInput}
+                          onChange={(e) => setPasswordInput(e.target.value)}
+                          placeholder="••••••••"
+                          className="h-10 rounded-button border border-border bg-surface px-space-3 text-body text-foreground placeholder:text-muted-foreground focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                        />
+                      </label>
+                      <button
+                        type="submit"
+                        disabled={pending}
+                        className="h-10 rounded-button bg-brand px-space-6 text-body font-semibold text-brand-foreground transition-transform hover:scale-[1.02] disabled:opacity-60"
+                      >
+                        {pending ? 'Signing in…' : 'Sign In'}
+                      </button>
+                    </form>
+
+                    {/* Divider */}
+                    <div className="relative flex items-center justify-center py-1 w-full">
+                      <div className="absolute inset-0 flex items-center">
+                        <span className="w-full border-t border-border/40" />
+                      </div>
+                      <span className="relative bg-background px-3 text-caption text-muted-foreground select-none">
+                        or
+                      </span>
+                    </div>
+
+                    {/* Google sign-in fallback (for users who skipped password setup) */}
+                    <div className="w-full">
+                      <GoogleSignInButton onCredential={handleGoogleSignIn} />
+                    </div>
+
+                    <p className="text-caption text-muted-foreground text-center">
+                      Use Google if you haven&apos;t set a password yet.
+                    </p>
+
+                    {error && (
+                      <p className="text-caption text-danger" role="alert">
+                        {error}
+                      </p>
+                    )}
+
+                    <div className="flex flex-col items-center gap-space-2 mt-space-2">
+                      <p className="text-small text-muted-foreground">
+                        Don&apos;t have an account?{' '}
+                        <button
+                          type="button"
+                          onClick={() => openPanel('signup')}
+                          className="text-brand hover:text-brand/80 transition-colors font-medium"
+                        >
+                          Sign Up
+                        </button>
+                      </p>
+                      <button
+                        type="button"
+                        onClick={backToHero}
+                        className="text-small text-muted-foreground transition-colors hover:text-foreground"
+                      >
+                        Back to welcome
+                      </button>
+                    </div>
                   </div>
                 </section>
               </div>

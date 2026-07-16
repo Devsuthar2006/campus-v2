@@ -4,6 +4,7 @@ import {
   UpdateInterestsSchema,
   UpdatePrivacySchema,
   CompleteProfileSchema,
+  SetPasswordSchema,
 } from '@campusly/shared-types';
 import { z } from 'zod';
 import { asyncHandler } from './asyncHandler.js';
@@ -65,6 +66,16 @@ userRouter.post(
     const input = CompleteProfileSchema.parse(req.body);
     const profile = await profileService.completeProfile(getAuth(req).sub, input);
     sendData(res, { profile });
+  }),
+);
+
+/** PUT /users/me/password — set or change the user's password. */
+userRouter.put(
+  '/users/me/password',
+  asyncHandler(async (req, res) => {
+    const input = SetPasswordSchema.parse(req.body);
+    await profileService.setOrChangePassword(getAuth(req).sub, input);
+    sendData(res, { success: true });
   }),
 );
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -11,10 +11,23 @@ import {
 import { useRequireAuth } from '../../hooks/useRequireAuth';
 import { useAuth } from '../../components/AuthProvider';
 import { profileApi } from '../../lib/profile';
+import { authApi } from '../../lib/auth';
+import { ApiClientError } from '../../lib/apiClient';
 import { Card, CardTitle, CardDescription } from '../../components/ui/Card';
 import { AppNav } from '../../components/AppNav';
 import { ThemeToggle } from '../../components/ThemeToggle';
-import { LogOut, HelpCircle } from 'lucide-react';
+import {
+  LogOut,
+  HelpCircle,
+  Lock,
+  Check,
+  X,
+  Eye,
+  EyeOff,
+  AtSign,
+  Loader2,
+  ShieldCheck,
+} from 'lucide-react';
 
 /** Settings — privacy controls (UI_GUIDELINES.md §12; AUTH_SYSTEM.md §9). */
 export default function SettingsPage() {
@@ -63,6 +76,85 @@ export default function SettingsPage() {
     if (typeof window !== 'undefined') {
       localStorage.setItem('anonymousu:match:skip_gender_filter', nextVal ? 'false' : 'true');
     }
+  };
+
+  // ─── Security / Password State ─────────────────────────────────────────────
+  const [secUsername, setSecUsername] = useState('');
+  const [secUsernameStatus, setSecUsernameStatus] = useState<
+    'idle' | 'checking' | 'available' | 'taken'
+  >('idle');
+  const [secCurrentPw, setSecCurrentPw] = useState('');
+  const [secNewPw, setSecNewPw] = useState('');
+  const [secConfirmPw, setSecConfirmPw] = useState('');
+  const [secShowPw, setSecShowPw] = useState(false);
+  const [secPending, setSecPending] = useState(false);
+  const [secError, setSecError] = useState<string | null>(null);
+  const [secSuccess, setSecSuccess] = useState(false);
+  const secDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Does the current user have a password set? We infer from the profile query.
+  // The user object from AuthProvider has `username`; if username is null, they likely haven't set creds.
+  const hasPassword = Boolean(user?.username); // proxy: if username exists, password was set
+
+  const checkSecUsername = useCallback((value: string) => {
+    if (secDebounceRef.current) clearTimeout(secDebounceRef.current);
+    const cleaned = value.toLowerCase().replace(/[^a-z0-9_]/g, '');
+    if (cleaned.length < 3) {
+      setSecUsernameStatus('idle');
+      return;
+    }
+    setSecUsernameStatus('checking');
+    secDebounceRef.current = setTimeout(async () => {
+      try {
+        const result = await authApi.checkUsername(cleaned);
+        setSecUsernameStatus(result.available ? 'available' : 'taken');
+      } catch {
+        setSecUsernameStatus('idle');
+      }
+    }, 500);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (secDebounceRef.current) clearTimeout(secDebounceRef.current);
+    };
+  }, []);
+
+  const secPasswordsMatch = secNewPw.length >= 8 && secNewPw === secConfirmPw;
+  const secUsernameValid = /^[a-z0-9_]{3,30}$/.test(secUsername);
+  const secCanSubmit = hasPassword
+    ? secCurrentPw.length > 0 && secPasswordsMatch
+    : (user?.username ? true : secUsernameValid && secUsernameStatus !== 'taken') &&
+      secPasswordsMatch;
+
+  const handlePasswordSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (!secCanSubmit) return;
+    setSecError(null);
+    setSecSuccess(false);
+    setSecPending(true);
+    profileApi
+      .setPassword({
+        ...(hasPassword ? { currentPassword: secCurrentPw } : {}),
+        newPassword: secNewPw,
+        ...(!hasPassword && !user?.username && secUsername
+          ? { username: secUsername.toLowerCase() }
+          : {}),
+      })
+      .then(() => {
+        setSecSuccess(true);
+        setSecCurrentPw('');
+        setSecNewPw('');
+        setSecConfirmPw('');
+        setSecUsername('');
+        setSecUsernameStatus('idle');
+      })
+      .catch((err: unknown) => {
+        setSecError(
+          err instanceof ApiClientError ? err.message : 'Failed to update password. Try again.',
+        );
+      })
+      .finally(() => setSecPending(false));
   };
 
   if (isLoading || !user) return null;
@@ -232,6 +324,162 @@ export default function SettingsPage() {
                 <option value="other">Other</option>
               </select>
             </label>
+          </Card>
+
+          {/* Security Card — Set / Change Password */}
+          <Card className="flex flex-col gap-space-5">
+            <div className="flex flex-col gap-space-1">
+              <div className="flex items-center gap-space-2">
+                <ShieldCheck className="h-5 w-5 text-brand" />
+                <CardTitle>Security</CardTitle>
+              </div>
+              <CardDescription>
+                {hasPassword
+                  ? 'Change your password to keep your account secure.'
+                  : 'Set a username and password to sign in without Google.'}
+              </CardDescription>
+            </div>
+
+            <form className="flex flex-col gap-space-3" onSubmit={handlePasswordSubmit}>
+              {/* Username (only shown if user has no username yet) */}
+              {!hasPassword && !user?.username && (
+                <label className="flex flex-col gap-space-1">
+                  <span className="text-body text-foreground">Username</span>
+                  <div className="relative">
+                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                      <AtSign className="h-4 w-4" />
+                    </span>
+                    <input
+                      value={secUsername}
+                      onChange={(e) => {
+                        const v = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '');
+                        setSecUsername(v);
+                        checkSecUsername(v);
+                      }}
+                      placeholder="your_username"
+                      maxLength={30}
+                      className="h-11 w-full rounded-input border border-border bg-background pl-9 pr-9 text-body text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2">
+                      {secUsernameStatus === 'checking' && (
+                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                      )}
+                      {secUsernameStatus === 'available' && (
+                        <Check className="h-4 w-4 text-emerald-500" />
+                      )}
+                      {secUsernameStatus === 'taken' && <X className="h-4 w-4 text-danger" />}
+                    </span>
+                  </div>
+                  <span
+                    className={`text-caption ${secUsernameStatus === 'taken' ? 'text-danger' : 'text-muted-foreground'}`}
+                  >
+                    {secUsernameStatus === 'taken'
+                      ? 'This username is taken.'
+                      : secUsernameStatus === 'available'
+                        ? 'Username is available!'
+                        : 'Lowercase letters, numbers, and underscores. 3–30 characters.'}
+                  </span>
+                </label>
+              )}
+
+              {/* Current password (only shown if user already has a password) */}
+              {hasPassword && (
+                <label className="flex flex-col gap-space-1">
+                  <span className="text-body text-foreground">Current password</span>
+                  <div className="relative">
+                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                      <Lock className="h-4 w-4" />
+                    </span>
+                    <input
+                      type={secShowPw ? 'text' : 'password'}
+                      value={secCurrentPw}
+                      onChange={(e) => setSecCurrentPw(e.target.value)}
+                      placeholder="Enter current password"
+                      className="h-11 w-full rounded-input border border-border bg-background pl-9 pr-9 text-body text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+                    />
+                  </div>
+                </label>
+              )}
+
+              {/* New password */}
+              <label className="flex flex-col gap-space-1">
+                <span className="text-body text-foreground">New password</span>
+                <div className="relative">
+                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                    <Lock className="h-4 w-4" />
+                  </span>
+                  <input
+                    type={secShowPw ? 'text' : 'password'}
+                    value={secNewPw}
+                    onChange={(e) => {
+                      setSecNewPw(e.target.value);
+                      setSecSuccess(false);
+                    }}
+                    placeholder="At least 8 characters"
+                    maxLength={128}
+                    className="h-11 w-full rounded-input border border-border bg-background pl-9 pr-9 text-body text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setSecShowPw(!secShowPw)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    tabIndex={-1}
+                  >
+                    {secShowPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </label>
+
+              {/* Confirm new password */}
+              <label className="flex flex-col gap-space-1">
+                <span className="text-body text-foreground">Confirm new password</span>
+                <div className="relative">
+                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                    <Lock className="h-4 w-4" />
+                  </span>
+                  <input
+                    type={secShowPw ? 'text' : 'password'}
+                    value={secConfirmPw}
+                    onChange={(e) => {
+                      setSecConfirmPw(e.target.value);
+                      setSecSuccess(false);
+                    }}
+                    placeholder="Re-enter new password"
+                    maxLength={128}
+                    className="h-11 w-full rounded-input border border-border bg-background pl-9 pr-9 text-body text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+                  />
+                  {secConfirmPw.length > 0 && (
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2">
+                      {secPasswordsMatch ? (
+                        <Check className="h-4 w-4 text-emerald-500" />
+                      ) : (
+                        <X className="h-4 w-4 text-danger" />
+                      )}
+                    </span>
+                  )}
+                </div>
+                {secConfirmPw.length > 0 && !secPasswordsMatch && (
+                  <span className="text-caption text-danger">Passwords do not match.</span>
+                )}
+              </label>
+
+              {secError && (
+                <p className="text-caption text-danger" role="alert">
+                  {secError}
+                </p>
+              )}
+              {secSuccess && (
+                <p className="text-caption text-emerald-500">Password updated successfully!</p>
+              )}
+
+              <button
+                type="submit"
+                disabled={secPending || !secCanSubmit}
+                className="h-10 rounded-button bg-brand px-space-6 text-body font-semibold text-brand-foreground transition-transform hover:scale-[1.02] disabled:opacity-60"
+              >
+                {secPending ? 'Saving…' : hasPassword ? 'Change Password' : 'Set Password'}
+              </button>
+            </form>
           </Card>
 
           {/* Appearance Card */}

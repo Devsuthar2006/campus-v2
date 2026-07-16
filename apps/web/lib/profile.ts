@@ -4,6 +4,7 @@ import type {
   UpdateProfileInput,
   UpdatePrivacyInput,
   CompleteProfileInput,
+  SetPasswordInput,
 } from '@campusly/shared-types';
 import { apiFetch } from './apiClient';
 
@@ -44,6 +45,14 @@ export const profileApi = {
       body: JSON.stringify(input),
     });
     return data.profile;
+  },
+
+  /** Set or change password from Settings. */
+  async setPassword(input: SetPasswordInput): Promise<void> {
+    await apiFetch<{ success: boolean }>('/users/me/password', {
+      method: 'PUT',
+      body: JSON.stringify(input),
+    });
   },
 
   async getPublicProfile(userId: string): Promise<PublicProfile> {
