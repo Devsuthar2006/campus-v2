@@ -201,11 +201,8 @@ export default function LandingPage() {
           {/* Hero */}
           <main className="mx-auto flex flex-1 w-full max-w-7xl flex-col items-center justify-center gap-space-8 px-space-5 py-space-6 lg:flex-row lg:justify-between lg:text-left text-center">
             {/* Left Column: Welcome, tagline, forms */}
-            <div className="flex flex-col items-center lg:items-start lg:w-1/2 w-full">
-              <div
-                className="mb-space-7 flex justify-center lg:justify-start"
-                aria-label="AnonymousU logo mark"
-              >
+            <div className="flex flex-col items-center justify-center lg:w-1/2 w-full">
+              <div className="mb-space-7 flex justify-center" aria-label="AnonymousU logo mark">
                 <div className="relative flex h-28 w-28 items-center justify-center">
                   <BrandLogo className="h-24 w-24 hover:scale-105 transition-transform" />
                 </div>
@@ -442,7 +439,12 @@ export default function LandingPage() {
             </div>
 
             {/* Right Column: 3D Isometric Screen Showcase */}
-            <div className="hidden lg:flex lg:w-1/2 items-center justify-center relative min-h-[550px] w-full isometric-perspective">
+            <div
+              className={cn(
+                'items-center justify-center relative min-h-[500px] lg:min-h-[550px] w-full lg:w-1/2 isometric-perspective mt-space-12 lg:mt-0 transition-opacity duration-500',
+                panelIndex === 0 ? 'flex' : 'hidden lg:flex',
+              )}
+            >
               {/* background decorative glowing blobs */}
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[350px] w-[350px] rounded-full bg-brand/10 blur-[80px]" />
 
