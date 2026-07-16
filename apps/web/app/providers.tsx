@@ -6,6 +6,7 @@ import { ThemeProvider } from 'next-themes';
 import { AuthProvider } from '../components/AuthProvider';
 import { InstallPrompt } from '../components/InstallPrompt';
 import { AppTour } from '../components/AppTour';
+import { MatchingProvider } from '../components/MatchingProvider';
 
 /**
  * Client-side providers: React Query (server state), theme (dark-first,
@@ -26,9 +27,11 @@ export function Providers({ children }: { children: ReactNode }) {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
         <AuthProvider>
-          {children}
-          <InstallPrompt />
-          <AppTour />
+          <MatchingProvider>
+            {children}
+            <InstallPrompt />
+            <AppTour />
+          </MatchingProvider>
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
