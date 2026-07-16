@@ -1,5 +1,5 @@
 'use client';
-
+import Image from 'next/image';
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import {
   Building2,
@@ -552,10 +552,11 @@ export default function LandingPage() {
                                   {/* Post Media (Placeholder Image) */}
                                   <div className="w-full aspect-square bg-muted relative overflow-hidden group">
                                     <div className="absolute inset-0 bg-gradient-to-tr from-brand/20 to-blue-500/10" />
-                                    <img
+                                    <Image
                                       src="/logo.png"
                                       alt="post media"
-                                      className="absolute inset-0 w-full h-full object-cover opacity-80 mix-blend-screen scale-110 group-hover:scale-100 transition-transform duration-700"
+                                      fill
+                                      className="object-cover opacity-80 mix-blend-screen scale-110 group-hover:scale-100 transition-transform duration-700"
                                     />
                                     {/* Overlay gradient for aesthetics */}
                                     <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/40" />
