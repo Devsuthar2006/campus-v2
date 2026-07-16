@@ -213,7 +213,7 @@ export default function LandingPage() {
             <div className="mt-space-8 w-full max-w-3xl overflow-hidden">
               <div
                 className={cn(
-                  'grid w-[300%] grid-cols-3 transition-transform duration-700 ease-out',
+                  'grid w-[300%] grid-cols-3 items-center transition-transform duration-700 ease-out',
                 )}
                 style={{ transform: `translateX(-${panelIndex * (100 / 3)}%)` }}
               >
