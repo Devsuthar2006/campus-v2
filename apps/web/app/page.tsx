@@ -56,6 +56,20 @@ export default function LandingPage() {
     return () => clearInterval(interval);
   }, [mounted]);
 
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0, active: false });
+
+  const handlePhoneMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    // Calculate rotation between -20 and 20 degrees based on mouse position
+    const x = ((e.clientX - rect.left) / rect.width - 0.5) * 40;
+    const y = ((e.clientY - rect.top) / rect.height - 0.5) * -40;
+    setMousePos({ x, y, active: true });
+  };
+
+  const handlePhoneMouseLeave = () => {
+    setMousePos({ x: 0, y: 0, active: false });
+  };
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const currentView = new URLSearchParams(window.location.search).get('view');
@@ -464,7 +478,21 @@ export default function LandingPage() {
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[350px] w-[350px] rounded-full bg-brand/10 blur-[80px]" />
 
                 {/* Realistic 3D iPhone Mockup */}
-                <div className="relative w-[300px] h-[600px] preserve-3d iphone-mockup z-10">
+                <div
+                  className={cn(
+                    'relative w-[300px] h-[600px] preserve-3d z-10 transition-transform duration-200 ease-out',
+                    !mousePos.active && 'iphone-mockup',
+                  )}
+                  onMouseMove={handlePhoneMouseMove}
+                  onMouseLeave={handlePhoneMouseLeave}
+                  style={
+                    mousePos.active
+                      ? {
+                          transform: `rotateY(${mousePos.x}deg) rotateX(${mousePos.y}deg) scale(1.08)`,
+                        }
+                      : undefined
+                  }
+                >
                   {/* Outer Hardware Bezel */}
                   <div className="absolute inset-0 rounded-[3rem] border-[10px] border-[#1a1a1c] bg-[#000000] shadow-[15px_25px_50px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden">
                     {/* Dynamic Island / Notch */}
@@ -480,31 +508,61 @@ export default function LandingPage() {
                       {/* STATE 0: Campus Wall */}
                       <div
                         className={cn(
-                          'absolute inset-0 pt-8 flex flex-col transition-opacity duration-1000',
+                          'absolute inset-0 pt-8 flex flex-col transition-opacity duration-1000 bg-background',
                           mockupScreenIndex === 0 ? 'opacity-100 z-20' : 'opacity-0 z-0',
                         )}
                       >
-                        <div className="flex justify-between items-center px-5 py-3 border-b border-border/40 bg-surface/80 backdrop-blur-sm">
+                        <div className="flex justify-between items-center px-5 py-3 border-b border-border/40 bg-surface/90 backdrop-blur-md z-30">
                           <span className="text-small font-semibold text-foreground">
                             Campus Wall
                           </span>
                         </div>
-                        <div className="flex-1 flex flex-col gap-4 p-5 overflow-hidden">
-                          <div className="flex flex-col gap-2 p-4 rounded-2xl bg-muted/40 border border-border/40 shadow-sm">
-                            <span className="text-small font-semibold text-brand">
-                              Anonymous User
-                            </span>
-                            <p className="text-caption text-foreground/90">
-                              Does anyone have the notes for the DSA midsem exam next week? 🥺
-                            </p>
-                          </div>
-                          <div className="flex flex-col gap-2 p-4 rounded-2xl bg-muted/40 border border-border/40 shadow-sm">
-                            <span className="text-small font-semibold text-foreground/80">
-                              Anonymous Senior
-                            </span>
-                            <p className="text-caption text-foreground/90">
-                              Check the library drive, folder 'CS-201'. Added yesterday!
-                            </p>
+                        <div className="flex-1 flex flex-col overflow-y-auto no-scrollbar pb-10">
+                          {/* IG-Style Post */}
+                          <div className="flex flex-col border-b border-border/40 bg-surface pb-4 mb-2">
+                            {/* Post Header */}
+                            <div className="flex items-center gap-3 p-3">
+                              <div className="w-8 h-8 rounded-full bg-brand/20 flex items-center justify-center border border-brand/30">
+                                <span className="text-[10px] font-bold text-brand">AS</span>
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="text-small font-semibold text-foreground leading-tight">
+                                  Anonymous Senior
+                                </span>
+                                <span className="text-[10px] text-muted-foreground">
+                                  CS Department • 2h ago
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Post Media (Placeholder Image) */}
+                            <div className="w-full aspect-square bg-muted relative overflow-hidden group">
+                              <div className="absolute inset-0 bg-gradient-to-tr from-brand/20 to-blue-500/10" />
+                              <img
+                                src="/logo.png"
+                                alt="post media"
+                                className="absolute inset-0 w-full h-full object-cover opacity-80 mix-blend-screen scale-110 group-hover:scale-100 transition-transform duration-700"
+                              />
+                              {/* Overlay gradient for aesthetics */}
+                              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/40" />
+                            </div>
+
+                            {/* Post Actions & Caption */}
+                            <div className="flex flex-col px-4 pt-3 gap-2">
+                              <div className="flex gap-4 items-center text-foreground/80">
+                                <span className="text-h2">♡</span>
+                                <span className="text-h3">💬</span>
+                                <span className="text-h3">↗</span>
+                              </div>
+                              <p className="text-caption text-foreground/90 mt-1">
+                                <span className="font-semibold mr-2">Anonymous Senior</span>
+                                Just uploaded all the notes and study guides for the upcoming DSA
+                                midterms into the shared drive. Good luck everyone! 📚✨
+                              </p>
+                              <p className="text-[10px] text-muted-foreground mt-1">
+                                View all 12 comments
+                              </p>
+                            </div>
                           </div>
                         </div>
                       </div>
