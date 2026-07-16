@@ -1,7 +1,17 @@
 'use client';
 
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
-import { Building2, Eye, MessageCircle, Users } from 'lucide-react';
+import {
+  Building2,
+  Eye,
+  MessageCircle,
+  Users,
+  ShieldCheck,
+  LockKeyhole,
+  Sparkles,
+  Ghost,
+  ChevronDown,
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../components/AuthProvider';
 import { GoogleSignInButton } from '../components/GoogleSignInButton';
@@ -695,7 +705,155 @@ export default function LandingPage() {
               </div>
               {/* Close Bottom Section container */}
             </div>
+
+            {/* Scroll Indicator */}
+            <div className="w-full flex justify-center pb-12 mt-20">
+              <div className="flex flex-col items-center gap-2 animate-bounce opacity-50 hover:opacity-100 transition-opacity cursor-pointer">
+                <span className="text-caption font-medium uppercase tracking-widest">
+                  Scroll to explore
+                </span>
+                <ChevronDown className="h-5 w-5" />
+              </div>
+            </div>
           </main>
+
+          {/* Features Bento Grid */}
+          <section className="w-full max-w-6xl mx-auto px-space-5 py-24 relative z-10">
+            <div className="text-center mb-16">
+              <h2 className="font-display text-4xl md:text-5xl font-bold tracking-tight mb-4">
+                Everything you need.
+                <br />
+                Nothing you don't.
+              </h2>
+              <p className="text-muted-foreground text-body max-w-2xl mx-auto">
+                Campus life is complicated enough. Your social network shouldn't be. Experience a
+                cleaner, safer, and more authentic way to connect.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Feature 1: Large */}
+              <div className="group md:col-span-2 relative overflow-hidden rounded-[2rem] bg-surface border border-border/40 p-10 hover:border-brand/50 transition-colors">
+                <div className="absolute inset-0 bg-gradient-to-br from-brand/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                <Ghost className="h-10 w-10 text-brand mb-6" />
+                <h3 className="text-h3 font-bold mb-3">True Anonymity</h3>
+                <p className="text-muted-foreground max-w-md">
+                  Your identity is completely hidden until you decide otherwise. Express yourself
+                  freely, ask the embarrassing questions, and be your authentic self without fear of
+                  judgment.
+                </p>
+              </div>
+
+              {/* Feature 2: Small */}
+              <div className="group relative overflow-hidden rounded-[2rem] bg-surface border border-border/40 p-10 hover:border-brand/50 transition-colors">
+                <Building2 className="h-10 w-10 text-blue-500 mb-6" />
+                <h3 className="text-h3 font-bold mb-3">Campus Exclusive</h3>
+                <p className="text-muted-foreground">
+                  Verified by .edu email. No outsiders, no bots.
+                </p>
+              </div>
+
+              {/* Feature 3: Small */}
+              <div className="group relative overflow-hidden rounded-[2rem] bg-surface border border-border/40 p-10 hover:border-brand/50 transition-colors">
+                <Sparkles className="h-10 w-10 text-emerald-500 mb-6" />
+                <h3 className="text-h3 font-bold mb-3">Smart Matching</h3>
+                <p className="text-muted-foreground">
+                  Find study buddies or dates instantly based on your exact vibe.
+                </p>
+              </div>
+
+              {/* Feature 4: Large */}
+              <div className="group md:col-span-2 relative overflow-hidden rounded-[2rem] bg-surface border border-border/40 p-10 hover:border-brand/50 transition-colors">
+                <div className="absolute inset-0 bg-gradient-to-tl from-purple-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                <MessageCircle className="h-10 w-10 text-purple-500 mb-6" />
+                <h3 className="text-h3 font-bold mb-3">The Campus Wall</h3>
+                <p className="text-muted-foreground max-w-md">
+                  A real-time, completely anonymous feed of campus gossip, memes, and important
+                  updates. It's the pulse of your university, right in your pocket.
+                </p>
+              </div>
+            </div>
+          </section>
+
+          {/* Privacy & Data Safety */}
+          <section className="w-full bg-[#0a0a0c] border-y border-border/40 py-32 relative overflow-hidden z-10">
+            {/* Soft background glow */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-1/2 bg-brand/10 blur-[120px] rounded-full pointer-events-none" />
+
+            <div className="max-w-4xl mx-auto px-space-5 relative z-10 text-center">
+              <ShieldCheck className="h-16 w-16 text-brand mx-auto mb-8 animate-pulse" />
+              <h2 className="font-display text-5xl md:text-7xl font-bold tracking-tight mb-8">
+                Your data is yours.
+              </h2>
+              <p className="text-xl text-muted-foreground mb-16 leading-relaxed">
+                We believe privacy is a fundamental human right. AnonymousU is built from the ground
+                up to protect your identity and your data.
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
+                <div className="flex flex-col gap-3 p-6 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md hover:-translate-y-1 transition-transform">
+                  <LockKeyhole className="h-6 w-6 text-brand" />
+                  <h4 className="font-bold text-foreground">Zero Tracking</h4>
+                  <p className="text-caption text-foreground/70">
+                    We don't track your location, and we never sell your data to advertisers.
+                  </p>
+                </div>
+                <div className="flex flex-col gap-3 p-6 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md hover:-translate-y-1 transition-transform">
+                  <Eye className="h-6 w-6 text-brand" />
+                  <h4 className="font-bold text-foreground">Untraceable Accounts</h4>
+                  <p className="text-caption text-foreground/70">
+                    Your .edu email is only used for verification and is cryptographically hashed.
+                  </p>
+                </div>
+                <div className="flex flex-col gap-3 p-6 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md hover:-translate-y-1 transition-transform">
+                  <MessageCircle className="h-6 w-6 text-brand" />
+                  <h4 className="font-bold text-foreground">Encrypted Chats</h4>
+                  <p className="text-caption text-foreground/70">
+                    Your conversations are securely encrypted and can only be read by you and your
+                    match.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Bottom CTA & Footer */}
+          <footer className="w-full flex flex-col items-center pt-32 pb-10 px-space-5 relative overflow-hidden z-10">
+            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-[400px] bg-gradient-to-t from-brand/20 to-transparent blur-[80px] pointer-events-none" />
+
+            <div className="text-center z-10 mb-32">
+              <h2 className="font-display text-5xl md:text-6xl font-bold tracking-tight mb-8">
+                Ready to join?
+              </h2>
+              <button
+                onClick={() => {
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                  setTimeout(() => setViewInUrl('signup'), 500);
+                }}
+                className="h-14 px-8 rounded-full bg-brand text-brand-foreground font-bold text-lg hover:scale-105 transition-transform shadow-[0_0_30px_rgba(var(--brand),0.3)]"
+              >
+                Create your account
+              </button>
+            </div>
+
+            <div className="w-full max-w-6xl flex flex-col md:flex-row items-center justify-between pt-8 border-t border-border/40 text-caption text-muted-foreground z-10">
+              <div className="flex items-center gap-2 mb-4 md:mb-0">
+                <BrandLogo className="h-5 w-5 grayscale opacity-50" />
+                <span>© 2026 AnonymousU. All rights reserved.</span>
+              </div>
+              <div className="flex gap-6">
+                <a href="#" className="hover:text-foreground transition-colors">
+                  Privacy Policy
+                </a>
+                <a href="#" className="hover:text-foreground transition-colors">
+                  Terms of Service
+                </a>
+                <a href="#" className="hover:text-foreground transition-colors">
+                  Community Guidelines
+                </a>
+              </div>
+            </div>
+          </footer>
         </div>
       )}
     </div>
