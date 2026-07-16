@@ -427,7 +427,11 @@ export default function LandingPage() {
                               Sign Up
                             </button>
                           </p>
-                          <button className="text-small font-medium text-muted-foreground transition-colors hover:text-foreground">
+                          <button
+                            type="button"
+                            onClick={backToHero}
+                            className="text-small font-medium text-muted-foreground transition-colors hover:text-foreground"
+                          >
                             Back to welcome
                           </button>
                         </div>
