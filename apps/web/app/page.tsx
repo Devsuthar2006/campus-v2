@@ -58,15 +58,14 @@ export default function LandingPage() {
 
   const [mousePos, setMousePos] = useState({ x: 0, y: 0, active: false });
 
-  const handlePhoneMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    // Calculate rotation between -20 and 20 degrees based on mouse position
-    const x = ((e.clientX - rect.left) / rect.width - 0.5) * 40;
-    const y = ((e.clientY - rect.top) / rect.height - 0.5) * -40;
+  const handleGlobalMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    // Calculate rotation between -15 and 15 degrees based on mouse position relative to entire screen
+    const x = (e.clientX / window.innerWidth - 0.5) * 30;
+    const y = (e.clientY / window.innerHeight - 0.5) * -30;
     setMousePos({ x, y, active: true });
   };
 
-  const handlePhoneMouseLeave = () => {
+  const handleGlobalMouseLeave = () => {
     setMousePos({ x: 0, y: 0, active: false });
   };
 
@@ -202,7 +201,11 @@ export default function LandingPage() {
   const panelIndex = activePanel === 'hero' ? 0 : activePanel === 'signup' ? 1 : 2;
 
   return (
-    <div className="dark relative min-h-screen overflow-hidden bg-background text-foreground">
+    <div
+      className="dark relative min-h-screen overflow-hidden bg-background text-foreground"
+      onMouseMove={handleGlobalMouseMove}
+      onMouseLeave={handleGlobalMouseLeave}
+    >
       <ConstellationBackground />
 
       {/* Calm overlay keeps the hero text legible over the animation. */}
@@ -480,11 +483,9 @@ export default function LandingPage() {
                 {/* Realistic 3D iPhone Mockup */}
                 <div
                   className={cn(
-                    'relative w-[300px] h-[600px] preserve-3d z-10 transition-transform duration-200 ease-out',
+                    'relative w-[300px] h-[600px] preserve-3d z-10 transition-transform duration-700 ease-out',
                     !mousePos.active && 'iphone-mockup',
                   )}
-                  onMouseMove={handlePhoneMouseMove}
-                  onMouseLeave={handlePhoneMouseLeave}
                   style={
                     mousePos.active
                       ? {
