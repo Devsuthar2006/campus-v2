@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter, Sora, Caveat } from 'next/font/google';
+import { Inter, Sora, Great_Vibes } from 'next/font/google';
 import { Providers } from './providers';
 import '../styles/globals.css';
 
@@ -12,10 +12,10 @@ const sora = Sora({
   variable: '--font-display',
   display: 'swap',
 });
-// Caveat — premium cursive font for taglines.
-const caveat = Caveat({
+// Great_Vibes — premium script/cursive font for taglines.
+const greatVibes = Great_Vibes({
   subsets: ['latin'],
-  weight: ['500', '700'],
+  weight: ['400'],
   variable: '--font-cursive',
   display: 'swap',
 });
@@ -36,7 +36,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${inter.variable} ${sora.variable} ${caveat.variable}`}
+      className={`${inter.variable} ${sora.variable} ${greatVibes.variable}`}
     >
       <head>
         <link rel="manifest" href="/manifest.json" />
