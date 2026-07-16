@@ -279,41 +279,45 @@ export default function LandingPage() {
 
                 {/* ══════════════════════════ PANEL 2: Sign Up (Google only) ══════════════════════════ */}
                 <section className="px-space-2">
-                  <div className="mx-auto flex w-full max-w-md flex-col items-center gap-space-4 px-space-5 py-space-6 text-left">
-                    <div className="w-full text-center">
-                      <h2 className="text-h2 font-semibold text-foreground">Create your account</h2>
-                      <p className="mt-space-2 text-body text-muted-foreground">
+                  <div className="mx-auto flex w-full max-w-md flex-col items-center gap-space-6 px-space-5 py-space-8">
+                    <div className="w-full text-center flex flex-col gap-space-2">
+                      <h2 className="text-h2 font-semibold text-foreground tracking-tight">
+                        Create your account
+                      </h2>
+                      <p className="text-body text-muted-foreground px-space-4">
                         Use your campus email to join AnonymousU
                       </p>
                     </div>
 
                     {/* Google Sign-in (for Sign Up) */}
-                    <div className="w-full">
+                    <div className="w-full my-space-2">
                       <GoogleSignInButton onCredential={handleGoogleSignUp} />
                     </div>
 
-                    <p className="text-caption text-muted-foreground text-center">
+                    <p className="text-caption leading-relaxed text-muted-foreground text-center px-space-2">
                       Your institutional email verifies you&apos;re a real student.
                       <br />
                       We never post or share without your consent.
                     </p>
 
                     {pending && (
-                      <p className="text-caption text-muted-foreground">Creating your account...</p>
+                      <p className="text-caption text-muted-foreground mt-space-2">
+                        Creating your account...
+                      </p>
                     )}
                     {error && (
-                      <p className="text-caption text-danger" role="alert">
+                      <p className="text-caption text-danger mt-space-2" role="alert">
                         {error}
                       </p>
                     )}
 
-                    <div className="flex flex-col items-center gap-space-2 mt-space-2">
+                    <div className="flex flex-col items-center gap-space-4 mt-space-4 pt-space-4 border-t border-border/40 w-full">
                       <p className="text-small text-muted-foreground">
                         Already have an account?{' '}
                         <button
                           type="button"
                           onClick={() => openPanel('signin')}
-                          className="text-brand hover:text-brand/80 transition-colors font-medium"
+                          className="text-brand hover:text-brand/80 transition-colors font-semibold"
                         >
                           Sign In
                         </button>
@@ -321,7 +325,7 @@ export default function LandingPage() {
                       <button
                         type="button"
                         onClick={backToHero}
-                        className="text-small text-muted-foreground transition-colors hover:text-foreground"
+                        className="text-small font-medium text-muted-foreground transition-colors hover:text-foreground"
                       >
                         Back to welcome
                       </button>
@@ -331,17 +335,22 @@ export default function LandingPage() {
 
                 {/* ══════════════════════════ PANEL 3: Sign In (Email + Password) ══════════════════════════ */}
                 <section className="px-space-2">
-                  <div className="mx-auto flex w-full max-w-md flex-col items-center gap-space-4 px-space-5 py-space-6 text-left">
-                    <div className="w-full text-center">
-                      <h2 className="text-h2 font-semibold text-foreground">Welcome back</h2>
-                      <p className="mt-space-2 text-body text-muted-foreground">
+                  <div className="mx-auto flex w-full max-w-md flex-col items-center gap-space-6 px-space-5 py-space-8">
+                    <div className="w-full text-center flex flex-col gap-space-2">
+                      <h2 className="text-h2 font-semibold text-foreground tracking-tight">
+                        Welcome back
+                      </h2>
+                      <p className="text-body text-muted-foreground px-space-4">
                         Sign in with your email and password
                       </p>
                     </div>
 
                     {/* Email + Password Form */}
-                    <form className="flex w-full flex-col gap-space-3" onSubmit={handleEmailSignIn}>
-                      <label className="flex flex-col gap-space-1">
+                    <form
+                      className="flex w-full flex-col gap-space-4 my-space-2"
+                      onSubmit={handleEmailSignIn}
+                    >
+                      <label className="flex flex-col gap-space-1.5">
                         <span className="text-small font-medium text-foreground">Email</span>
                         <input
                           type="email"
@@ -349,10 +358,10 @@ export default function LandingPage() {
                           value={emailInput}
                           onChange={(e) => setEmailInput(e.target.value)}
                           placeholder="you@campus.edu"
-                          className="h-10 rounded-button border border-border bg-surface px-space-3 text-body text-foreground placeholder:text-muted-foreground focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                          className="h-11 rounded-button border border-border bg-surface px-space-4 text-body text-foreground placeholder:text-muted-foreground focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand transition-colors"
                         />
                       </label>
-                      <label className="flex flex-col gap-space-1">
+                      <label className="flex flex-col gap-space-1.5">
                         <span className="text-small font-medium text-foreground">Password</span>
                         <input
                           type="password"
@@ -360,24 +369,24 @@ export default function LandingPage() {
                           value={passwordInput}
                           onChange={(e) => setPasswordInput(e.target.value)}
                           placeholder="••••••••"
-                          className="h-10 rounded-button border border-border bg-surface px-space-3 text-body text-foreground placeholder:text-muted-foreground focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                          className="h-11 rounded-button border border-border bg-surface px-space-4 text-body text-foreground placeholder:text-muted-foreground focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand transition-colors"
                         />
                       </label>
                       <button
                         type="submit"
                         disabled={pending}
-                        className="h-10 rounded-button bg-brand px-space-6 text-body font-semibold text-brand-foreground transition-transform hover:scale-[1.02] disabled:opacity-60"
+                        className="h-11 mt-space-2 rounded-button bg-brand px-space-6 text-body font-semibold text-brand-foreground transition-transform hover:scale-[1.02] disabled:opacity-60"
                       >
                         {pending ? 'Signing in…' : 'Sign In'}
                       </button>
                     </form>
 
                     {/* Divider */}
-                    <div className="relative flex items-center justify-center py-1 w-full">
+                    <div className="relative flex items-center justify-center py-2 w-full">
                       <div className="absolute inset-0 flex items-center">
                         <span className="w-full border-t border-border/40" />
                       </div>
-                      <span className="relative bg-background px-3 text-caption text-muted-foreground select-none">
+                      <span className="relative bg-background px-4 text-caption font-medium text-muted-foreground uppercase tracking-wider select-none">
                         or
                       </span>
                     </div>
@@ -387,23 +396,23 @@ export default function LandingPage() {
                       <GoogleSignInButton onCredential={handleGoogleSignIn} />
                     </div>
 
-                    <p className="text-caption text-muted-foreground text-center">
+                    <p className="text-caption text-muted-foreground text-center px-space-4 leading-relaxed">
                       Use Google if you haven&apos;t set a password yet.
                     </p>
 
                     {error && (
-                      <p className="text-caption text-danger" role="alert">
+                      <p className="text-caption text-danger mt-space-2" role="alert">
                         {error}
                       </p>
                     )}
 
-                    <div className="flex flex-col items-center gap-space-2 mt-space-2">
+                    <div className="flex flex-col items-center gap-space-4 mt-space-4 pt-space-4 border-t border-border/40 w-full">
                       <p className="text-small text-muted-foreground">
                         Don&apos;t have an account?{' '}
                         <button
                           type="button"
                           onClick={() => openPanel('signup')}
-                          className="text-brand hover:text-brand/80 transition-colors font-medium"
+                          className="text-brand hover:text-brand/80 transition-colors font-semibold"
                         >
                           Sign Up
                         </button>
@@ -411,7 +420,7 @@ export default function LandingPage() {
                       <button
                         type="button"
                         onClick={backToHero}
-                        className="text-small text-muted-foreground transition-colors hover:text-foreground"
+                        className="text-small font-medium text-muted-foreground transition-colors hover:text-foreground"
                       >
                         Back to welcome
                       </button>
