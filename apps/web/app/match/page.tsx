@@ -314,7 +314,7 @@ export default function MatchPage() {
                       </div>
 
                       <div className="flex items-center gap-space-2">
-                        {partner && (
+                        {sessionId && (
                           <div className="flex items-center">
                             {friendState === 'idle' && (
                               <button
@@ -421,7 +421,7 @@ export default function MatchPage() {
               </button>
             )}
 
-            {partner &&
+            {sessionId &&
               (friendState === 'incoming' ? (
                 <button
                   type="button"
