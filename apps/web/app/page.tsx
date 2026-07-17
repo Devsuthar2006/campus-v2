@@ -1,6 +1,6 @@
 'use client';
 import Image from 'next/image';
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useState, useRef, type FormEvent } from 'react';
 import {
   Building2,
   Eye,
@@ -66,18 +66,47 @@ export default function LandingPage() {
     return () => clearInterval(interval);
   }, [mounted]);
 
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0, active: false });
+  const mockupRef = useRef<HTMLDivElement>(null);
 
-  const handleGlobalMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    // Calculate rotation between -15 and 15 degrees based on mouse position relative to entire screen
-    const x = (e.clientX / window.innerWidth - 0.5) * 30;
-    const y = (e.clientY / window.innerHeight - 0.5) * -30;
-    setMousePos({ x, y, active: true });
-  };
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
 
-  const handleGlobalMouseLeave = () => {
-    setMousePos({ x: 0, y: 0, active: false });
-  };
+    let ticking = false;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          if (mockupRef.current) {
+            const x = (e.clientX / window.innerWidth - 0.5) * 30;
+            const y = (e.clientY / window.innerHeight - 0.5) * -30;
+            mockupRef.current.style.transform = `rotateY(${x}deg) rotateX(${y}deg) scale(1.08)`;
+          }
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    const handleMouseLeave = () => {
+      if (mockupRef.current) {
+        mockupRef.current.style.transform = 'rotateY(-18deg) rotateX(10deg) rotateZ(4deg) scale(1)';
+      }
+    };
+
+    // Use passive event listeners for better scroll performance
+    window.addEventListener('mousemove', handleMouseMove, { passive: true });
+    document.addEventListener('mouseleave', handleMouseLeave, { passive: true });
+
+    // Ensure initial transform is set
+    if (mockupRef.current) {
+      mockupRef.current.style.transform = 'rotateY(-18deg) rotateX(10deg) rotateZ(4deg) scale(1)';
+    }
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseleave', handleMouseLeave);
+    };
+  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -211,11 +240,7 @@ export default function LandingPage() {
   const panelIndex = activePanel === 'hero' ? 0 : activePanel === 'signup' ? 1 : 2;
 
   return (
-    <div
-      className="dark relative min-h-screen overflow-hidden bg-background text-foreground"
-      onMouseMove={handleGlobalMouseMove}
-      onMouseLeave={handleGlobalMouseLeave}
-    >
+    <div className="dark relative min-h-screen overflow-hidden bg-background text-foreground">
       <ConstellationBackground />
 
       {/* Calm overlay keeps the hero text legible over the animation. */}
@@ -496,12 +521,9 @@ export default function LandingPage() {
                   style={{ animation: 'iphone-float 6s infinite ease-in-out' }}
                 >
                   <div
+                    ref={mockupRef}
                     className="w-full h-full preserve-3d transition-transform duration-1000 ease-out"
-                    style={{
-                      transform: mousePos.active
-                        ? `rotateY(${mousePos.x}deg) rotateX(${mousePos.y}deg) scale(1.08)`
-                        : 'rotateY(-18deg) rotateX(10deg) rotateZ(4deg) scale(1)',
-                    }}
+                    style={{ transform: 'rotateY(-18deg) rotateX(10deg) rotateZ(4deg) scale(1)' }}
                   >
                     {/* Outer Hardware Bezel */}
                     <div className="absolute inset-0 rounded-[3rem] border-[10px] border-[#1a1a1c] bg-[#000000] shadow-[15px_25px_50px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden">

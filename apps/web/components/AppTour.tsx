@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { Sparkles, ArrowRight, ArrowLeft, X, Check } from 'lucide-react';
 import { Button } from './ui/Button';
 import { useAuth } from './AuthProvider';
+import { cn } from '../lib/utils';
 
 interface TourStep {
   targetId: string;
@@ -69,6 +70,7 @@ export function AppTour() {
     borderRadius: string;
   } | null>(null);
   const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number } | null>(null);
+  const [attentionGlow, setAttentionGlow] = useState(false);
 
   const tooltipRef = useRef<HTMLDivElement>(null);
 
@@ -76,6 +78,9 @@ export function AppTour() {
   useEffect(() => {
     if (typeof window === 'undefined' || !user) return;
     if (isActive) return; // Already running, don't reset index
+
+    // Don't show if user hasn't finished profile creation yet
+    if (user.accountStatus === 'pending_verification') return;
 
     // Don't show on login/onboarding pages
     if (pathname === '/' || pathname === '/onboarding') return;
@@ -263,6 +268,11 @@ export function AppTour() {
     setIsActive(false);
   };
 
+  const handleOutsideClick = () => {
+    setAttentionGlow(true);
+    setTimeout(() => setAttentionGlow(false), 500);
+  };
+
   const handleComplete = () => {
     localStorage.setItem('anonymousu:tour_completed', 'true');
     setIsActive(false);
@@ -273,8 +283,8 @@ export function AppTour() {
   // Render Welcome Prompt Modal
   if (currentStepIndex === -1) {
     return (
-      <div className="fixed inset-0 bg-background/60 z-[9999] flex items-center justify-center p-space-4 animate-in fade-in duration-300">
-        <div className="bg-card border border-border/80 shadow-2xl rounded-2xl p-space-6 max-w-sm w-full flex flex-col gap-space-4 text-center select-none animate-in zoom-in-95 duration-200">
+      <div className="fixed inset-0 bg-background/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-space-4 animate-in fade-in duration-300">
+        <div className="bg-card/95 backdrop-blur-xl border border-border/80 shadow-2xl rounded-2xl p-space-6 max-w-sm w-full flex flex-col gap-space-4 text-center select-none animate-in zoom-in-95 duration-200">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-brand/10 text-brand">
             <Sparkles className="h-7 w-7 animate-pulse" />
           </div>
@@ -308,7 +318,10 @@ export function AppTour() {
   return (
     <div className="fixed inset-0 z-[9999] pointer-events-none select-none">
       {/* Invisible pointer trap layer */}
-      <div className="absolute inset-0 transition-all duration-300 pointer-events-auto" />
+      <div
+        className="absolute inset-0 transition-all duration-300 pointer-events-auto"
+        onClick={handleOutsideClick}
+      />
       {/* Sliding Spotlight */}
       {spotlightCoords && (
         <div
@@ -322,10 +335,14 @@ export function AppTour() {
           }}
         />
       )}
-      {/* Floating Tooltip Card */}(
+      {/* Floating Tooltip Card */}
       <div
         ref={tooltipRef}
-        className="fixed bg-card border border-border/80 shadow-2xl p-5 rounded-2xl w-[320px] max-w-[calc(100vw-2rem)] flex flex-col gap-4 pointer-events-auto transition-all duration-300 ease-out animate-in zoom-in-95 duration-200"
+        className={cn(
+          'fixed bg-card/95 backdrop-blur-xl border border-border/80 shadow-2xl p-5 rounded-2xl w-[320px] max-w-[calc(100vw-2rem)] flex flex-col gap-4 pointer-events-auto transition-all duration-300 ease-out animate-in zoom-in-95 duration-200',
+          attentionGlow &&
+            'scale-[1.02] ring-4 ring-brand/50 shadow-brand/20 shadow-2xl border-brand/50',
+        )}
         style={
           tooltipPos && currentStepIndex > 0
             ? { top: tooltipPos.top, left: tooltipPos.left }
