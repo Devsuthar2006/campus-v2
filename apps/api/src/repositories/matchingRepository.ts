@@ -40,9 +40,17 @@ export const matchingRepository = {
    * Creates a session + two participant rows and clears both users' queue rows
    * in ONE transaction (MATCHING_ENGINE.md §5 — no ghost/duplicate sessions).
    */
-  async createSession(universityId: string, userA: string, userB: string): Promise<AnonSessionRow> {
+  async createSession(
+    universityId: string,
+    userA: string,
+    userB: string,
+    matchMode: string = 'text',
+  ): Promise<AnonSessionRow> {
     return db.transaction(async (tx) => {
-      const [session] = await tx.insert(anonSessions).values({ universityId }).returning();
+      const [session] = await tx
+        .insert(anonSessions)
+        .values({ universityId, matchMode })
+        .returning();
       if (!session) throw new Error('Failed to create session');
       await tx.insert(sessionParticipants).values([
         { sessionId: session.id, userId: userA },

@@ -16,6 +16,7 @@ import {
   type MatchFoundPayload,
   type SessionStartedPayload,
   type SessionEndedPayload,
+  type MatchMode,
 } from '@campusly/shared-types';
 import { connectSocket, getSocket } from '../lib/socket';
 import type { PublicUserSummary } from '@campusly/shared-types';
@@ -26,7 +27,9 @@ export interface MatchingContextValue {
   sessionId: string | null;
   partner: PublicUserSummary | null;
   endedReason: string | null;
-  findMatch: (genderPreference?: any) => void;
+  matchMode: MatchMode | null;
+  isCaller: boolean;
+  findMatch: (genderPreference?: string, matchMode?: MatchMode) => void;
   cancel: () => void;
   leaveSession: () => void;
 }
@@ -39,6 +42,8 @@ export function MatchingProvider({ children }: { children: ReactNode }) {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [partner, setPartner] = useState<PublicUserSummary | null>(null);
   const [endedReason, setEndedReason] = useState<string | null>(null);
+  const [matchMode, setMatchMode] = useState<MatchMode | null>(null);
+  const [isCaller, setIsCaller] = useState(false);
   const heartbeat = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const stopHeartbeat = useCallback(() => {
@@ -58,15 +63,18 @@ export function MatchingProvider({ children }: { children: ReactNode }) {
       setEndedReason(null);
     };
     const onFound = (_p: MatchFoundPayload) => setEndedReason(null);
-    const onStarted = (p: SessionStartedPayload) => {
+    const onStarted = (p: SessionStartedPayload & { matchMode?: MatchMode }) => {
       stopHeartbeat();
       setSessionId(p.sessionId);
       setPartner(p.partner ?? null);
+      if (p.matchMode) setMatchMode(p.matchMode);
+      if (p.isCaller !== undefined) setIsCaller(p.isCaller);
       setState('in_session');
     };
     const onEnded = (p: SessionEndedPayload) => {
       setSessionId(null);
       setPartner(null);
+      setMatchMode(null);
       setState('idle');
       setEndedReason(p.reason);
     };
@@ -99,11 +107,12 @@ export function MatchingProvider({ children }: { children: ReactNode }) {
   }, [user, stopHeartbeat]);
 
   const findMatch = useCallback(
-    (genderPreference = 'all') => {
+    (genderPreference = 'all', mode: MatchMode = 'text') => {
       const socket = getSocket();
       setEndedReason(null);
       setState('waiting');
-      socket.emit(MATCH_CLIENT_EVENTS.JOIN_QUEUE, { genderPreference });
+      setMatchMode(mode);
+      socket.emit(MATCH_CLIENT_EVENTS.JOIN_QUEUE, { genderPreference, matchMode: mode });
       stopHeartbeat();
       heartbeat.current = setInterval(() => socket.emit(MATCH_CLIENT_EVENTS.HEARTBEAT), 10_000);
     },
@@ -124,7 +133,17 @@ export function MatchingProvider({ children }: { children: ReactNode }) {
 
   return (
     <MatchingContext.Provider
-      value={{ state, sessionId, partner, endedReason, findMatch, cancel, leaveSession }}
+      value={{
+        state,
+        sessionId,
+        partner,
+        endedReason,
+        matchMode,
+        isCaller,
+        findMatch,
+        cancel,
+        leaveSession,
+      }}
     >
       {children}
     </MatchingContext.Provider>

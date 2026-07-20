@@ -7,10 +7,13 @@ import { useFriends } from '../../hooks/useFriends';
 import { AppNav } from '../../components/AppNav';
 import { Avatar } from '../../components/Avatar';
 import { Chat } from '../../components/Chat';
+import { VoiceCallButton, VoiceCallOverlay } from '../../components/VoiceCallOverlay';
+import { useWebRTC } from '../../hooks/useWebRTC';
 import { Card, CardTitle, CardDescription } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { cn } from '../../lib/utils';
 import { profileApi } from '../../lib/profile';
+import { configApi } from '../../lib/config';
 
 /**
  * Friend system surfaces (FRIEND_SYSTEM.md, UI_GUIDELINES.md §12): friends list
@@ -40,6 +43,21 @@ export default function FriendsPage() {
   const [publicProfile, setPublicProfile] = useState<any | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [sidebarView, setSidebarView] = useState<'friends' | 'requests'>('friends');
+
+  const [voiceEnabled, setVoiceEnabled] = useState(false);
+  useEffect(() => {
+    configApi
+      .features()
+      .then((flags) => setVoiceEnabled(flags.random_voice_call ?? false))
+      .catch(() => {});
+  }, []);
+
+  // WebRTC Voice Call hook for active friendship chat
+  const voiceCall = useWebRTC({
+    contextType: 'friendship',
+    contextId: openFriendshipId,
+    enabled: !!openFriendshipId && voiceEnabled,
+  });
 
   const openFriend = friends.find((f) => f.friendshipId === openFriendshipId);
 
@@ -328,7 +346,31 @@ export default function FriendsPage() {
                     </span>
                   </div>
                 </div>
+
+                {/* Voice Call Button (Right aligned in header) */}
+                {voiceEnabled && (
+                  <div className="flex items-center">
+                    <VoiceCallButton
+                      callState={voiceCall.callState}
+                      onStartCall={voiceCall.startCall}
+                    />
+                  </div>
+                )}
               </div>
+
+              {/* Voice Call Overlay */}
+              {voiceEnabled && (
+                <VoiceCallOverlay
+                  callState={voiceCall.callState}
+                  isMuted={voiceCall.isMuted}
+                  callDuration={voiceCall.callDuration}
+                  onStartCall={voiceCall.startCall}
+                  onAcceptCall={voiceCall.acceptCall}
+                  onEndCall={voiceCall.endCall}
+                  onToggleMute={voiceCall.toggleMute}
+                />
+              )}
+
               {/* Chat body — fills remaining space, scrolls internally */}
               <div className="flex-1 overflow-hidden">
                 <Chat

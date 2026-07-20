@@ -403,6 +403,7 @@ export const anonSessions = pgTable(
     startedAt: timestamp('started_at', { withTimezone: true }).notNull().defaultNow(),
     endedAt: timestamp('ended_at', { withTimezone: true }),
     endReason: sessionEndReasonEnum('end_reason'),
+    matchMode: text('match_mode').notNull().default('text'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => ({

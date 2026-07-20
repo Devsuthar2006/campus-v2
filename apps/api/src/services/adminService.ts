@@ -76,6 +76,16 @@ export const DEFAULT_FEATURE_FLAGS = [
     description: 'Require premium for gated features',
     isEnabled: false,
   },
+  {
+    key: 'random_voice_call',
+    description: 'Enable real-time voice calling in random match sessions',
+    isEnabled: true,
+  },
+  {
+    key: 'college_only_login',
+    description: 'Restrict sign-ups to verified college email domains only',
+    isEnabled: true,
+  },
 ];
 
 class AdminService {

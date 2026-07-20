@@ -1,0 +1,1 @@
+ALTER TABLE "anon_sessions" ADD COLUMN "match_mode" text DEFAULT 'text' NOT NULL;

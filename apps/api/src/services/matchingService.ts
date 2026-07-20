@@ -24,6 +24,7 @@ interface WaitingEntry {
   lastHeartbeat: number;
   gender: string;
   genderPreference: string;
+  matchMode: string;
 }
 
 const STALE_MS = 30_000; // no heartbeat for 30s → reclaimed
@@ -77,7 +78,12 @@ class MatchingService {
   }
 
   /** A user requests a match. Pairs synchronously if a partner is waiting. */
-  async joinQueue(userId: string, universityId: string, genderPreference = 'all'): Promise<void> {
+  async joinQueue(
+    userId: string,
+    universityId: string,
+    genderPreference = 'all',
+    matchMode = 'text',
+  ): Promise<void> {
     // Already in an active session? Re-notify (reconnection) instead of queueing.
     if (await this.checkSession(userId)) {
       return;
@@ -87,11 +93,20 @@ class MatchingService {
     const profile = await profileRepository.getProfile(userId);
     const userGender = profile?.gender ?? 'other';
 
-    logger.info({ userId, userGender, genderPreference }, 'User enqueued request for matching');
+    logger.info(
+      { userId, userGender, genderPreference, matchMode },
+      'User enqueued request for matching',
+    );
 
     // Find the oldest compatible waiting partner (same campus, not self, not
-    // blocked in either direction, and satisfying mutual gender preferences).
-    const partnerId = await this.pickPartner(userId, universityId, userGender, genderPreference);
+    // blocked in either direction, satisfying mutual gender preferences and same matchMode).
+    const partnerId = await this.pickPartner(
+      userId,
+      universityId,
+      userGender,
+      genderPreference,
+      matchMode,
+    );
 
     if (!partnerId) {
       const now = Date.now();
@@ -101,6 +116,7 @@ class MatchingService {
         lastHeartbeat: now,
         gender: userGender,
         genderPreference,
+        matchMode,
       });
       await matchingRepository.upsertWaiting(userId, universityId);
       logger.info(
@@ -120,11 +136,26 @@ class MatchingService {
     this.waiting.delete(userId);
 
     try {
-      const session = await matchingRepository.createSession(universityId, userId, partnerId);
+      const session = await matchingRepository.createSession(
+        universityId,
+        userId,
+        partnerId,
+        matchMode,
+      );
       const payload = { sessionId: session.id };
 
-      let startedA: any = { sessionId: session.id, startedAt: session.startedAt.toISOString() };
-      let startedB: any = { sessionId: session.id, startedAt: session.startedAt.toISOString() };
+      let startedA: any = {
+        sessionId: session.id,
+        startedAt: session.startedAt.toISOString(),
+        matchMode,
+        isCaller: true,
+      };
+      let startedB: any = {
+        sessionId: session.id,
+        startedAt: session.startedAt.toISOString(),
+        matchMode,
+        isCaller: false,
+      };
 
       const areFriends = await friendRepository.areFriends(userId, partnerId);
       if (areFriends) {
@@ -152,6 +183,7 @@ class MatchingService {
         lastHeartbeat: now,
         gender: partnerEntry?.gender ?? 'other',
         genderPreference: partnerEntry?.genderPreference ?? 'all',
+        matchMode: partnerEntry?.matchMode ?? 'text',
       });
       this.emit(userId, MATCH_SERVER_EVENTS.MATCH_CANCELLED, { reason: 'pairing_failed' });
     }
@@ -162,6 +194,7 @@ class MatchingService {
     _universityId: string,
     userGender: string,
     genderPreference: string,
+    matchMode: string,
   ): Promise<string | null> {
     // Oldest-first candidates (broadly FIFO fairness).
     // Universal mode: no campus filter — cross-campus matching enabled.
@@ -169,6 +202,9 @@ class MatchingService {
     const candidates: { id: string; enqueuedAt: number }[] = [];
     for (const [id, entry] of this.waiting) {
       if (id === userId) continue;
+
+      // Ensure both users requested the same mode (text/voice)
+      if (entry.matchMode !== matchMode) continue;
 
       // Symmetric gender matching:
       // 1. Does the candidate's gender match the enqueuer's preference?

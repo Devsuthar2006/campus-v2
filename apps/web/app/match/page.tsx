@@ -9,17 +9,29 @@ import {
 } from '@campusly/shared-types';
 import { useRequireAuth } from '../../hooks/useRequireAuth';
 import { useMatching } from '../../hooks/useMatching';
+
 import { apiFetch, ApiClientError } from '../../lib/apiClient';
 import { friendsApi } from '../../lib/friends';
 import { profileApi } from '../../lib/profile';
+import { configApi } from '../../lib/config';
 import { getSocket } from '../../lib/socket';
 import { AppNav } from '../../components/AppNav';
 import { Chat } from '../../components/Chat';
 import { Globe3D } from '../../components/Globe3D';
 import { SearchingGraphics } from '../../components/SearchingGraphics';
 import { Avatar } from '../../components/Avatar';
+import { PureVoiceMatchUI } from '../../components/PureVoiceMatchUI';
 import { Button } from '../../components/ui/Button';
-import { MoreHorizontal, Sparkles, Users, Check, UserPlus, UserCheck } from 'lucide-react';
+import {
+  MoreHorizontal,
+  Sparkles,
+  Users,
+  Check,
+  UserPlus,
+  UserCheck,
+  MessageCircle,
+  Mic,
+} from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 const MarsIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -58,7 +70,8 @@ type FriendState = 'idle' | 'sent' | 'incoming' | 'accepted';
 
 export default function MatchPage() {
   const { user, isLoading } = useRequireAuth();
-  const { state, sessionId, partner, findMatch, cancel, leaveSession } = useMatching();
+  const { state, sessionId, partner, matchMode, isCaller, findMatch, cancel, leaveSession } =
+    useMatching();
   const [reporting, setReporting] = useState(false);
   const [friendState, setFriendState] = useState<FriendState>('idle');
   const [incomingRequestId, setIncomingRequestId] = useState<string | null>(null);
@@ -71,14 +84,25 @@ export default function MatchPage() {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [genderFilter, setGenderFilter] = useState<'male' | 'female' | 'other' | 'all'>('all');
   const [dontShowAgain, setDontShowAgain] = useState(false);
+  const [pendingMatchMode, setPendingMatchMode] = useState<'text' | 'voice'>('text');
 
-  const onFindMatchClick = () => {
+  // Voice call feature flag
+  const [voiceEnabled, setVoiceEnabled] = useState(false);
+  useEffect(() => {
+    configApi
+      .features()
+      .then((flags) => setVoiceEnabled(flags.random_voice_call ?? false))
+      .catch(() => {});
+  }, []);
+
+  const onFindMatchClick = (mode: 'text' | 'voice') => {
     if (typeof window === 'undefined') return;
+    setPendingMatchMode(mode);
     const skip = localStorage.getItem('anonymousu:match:skip_gender_filter') === 'true';
     const storedPref = (localStorage.getItem('anonymousu:match:gender_preference') as any) || 'all';
 
     if (skip) {
-      findMatch(storedPref);
+      findMatch(storedPref, mode);
     } else {
       setGenderFilter(storedPref);
       setDontShowAgain(false);
@@ -96,7 +120,7 @@ export default function MatchPage() {
       localStorage.setItem('anonymousu:match:gender_preference', genderFilter);
     }
     setShowSettingsModal(false);
-    findMatch(genderFilter);
+    findMatch(genderFilter, pendingMatchMode);
   };
 
   const handleNextMatch = () => {
@@ -104,9 +128,11 @@ export default function MatchPage() {
     if (typeof window === 'undefined') return;
     const skipModal = localStorage.getItem('anonymousu:match:skip_gender_filter') === 'true';
     const storedPref = (localStorage.getItem('anonymousu:match:gender_preference') as any) || 'all';
+
+    // We reuse the pendingMatchMode (what they used last time)
     if (skipModal) {
       // User checked "don't show again" — auto-search immediately
-      findMatch(storedPref);
+      findMatch(storedPref, pendingMatchMode);
     } else {
       // Show gender preference modal before re-matching
       setGenderFilter(storedPref);
@@ -252,15 +278,40 @@ export default function MatchPage() {
                 <Globe3D isSearching={state === 'waiting'} className="h-full w-full" />
               </div>
 
-              {/* Action Button */}
+              {/* Action Buttons */}
               {state === 'idle' && (
-                <Button
-                  size="lg"
-                  className="w-full sm:w-auto min-w-[220px] px-space-8 py-4 text-lg font-semibold rounded-full shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-95 transition-all"
-                  onClick={onFindMatchClick}
-                >
-                  Find a match
-                </Button>
+                <div className="flex flex-col sm:flex-row gap-space-4 justify-center items-center w-full mt-4">
+                  {!voiceEnabled ? (
+                    <Button
+                      size="lg"
+                      className="w-full sm:w-auto min-w-[220px] px-space-8 py-4 text-lg font-semibold rounded-full shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-95 transition-all"
+                      onClick={() => onFindMatchClick('text')}
+                    >
+                      Find a match
+                    </Button>
+                  ) : (
+                    <>
+                      <Button
+                        size="lg"
+                        className="w-full sm:w-auto min-w-[200px] px-space-8 py-4 text-lg font-semibold rounded-full shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-space-2"
+                        onClick={() => onFindMatchClick('text')}
+                      >
+                        <MessageCircle className="h-5 w-5" />
+                        Text Match
+                      </Button>
+
+                      <Button
+                        size="lg"
+                        variant="secondary"
+                        className="w-full sm:w-auto min-w-[200px] px-space-8 py-4 text-lg font-semibold rounded-full shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-space-2 bg-brand/10 text-brand hover:bg-brand/20 border-none"
+                        onClick={() => onFindMatchClick('voice')}
+                      >
+                        <Mic className="h-5 w-5" />
+                        Voice Match
+                      </Button>
+                    </>
+                  )}
+                </div>
               )}
 
               {state === 'waiting' && (
@@ -375,15 +426,26 @@ export default function MatchPage() {
                     </div>
                   </div>
 
-                  {/* Active Chat box (scrolls internally) */}
-                  <div className="flex-1 overflow-hidden min-h-0 mt-space-2 px-0">
-                    <Chat
-                      contextType="anon_session"
-                      contextId={sessionId}
-                      selfId={user.id}
-                      onNextMatch={handleNextMatch}
-                    />
-                  </div>
+                  {matchMode === 'voice' ? (
+                    <div className="flex-1 overflow-hidden min-h-0 flex">
+                      <PureVoiceMatchUI
+                        sessionId={sessionId}
+                        isCaller={isCaller}
+                        partner={partner}
+                        onNextMatch={handleNextMatch}
+                        onLeave={leaveSession}
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex-1 overflow-hidden min-h-0 mt-space-2 px-0">
+                      <Chat
+                        contextType="anon_session"
+                        contextId={sessionId}
+                        selfId={user.id}
+                        onNextMatch={handleNextMatch}
+                      />
+                    </div>
+                  )}
                 </div>
               )}
             </div>

@@ -8,6 +8,7 @@ import { userRepository } from '../repositories/userRepository.js';
 import { universityRepository } from '../repositories/universityRepository.js';
 import { refreshTokenRepository } from '../repositories/refreshTokenRepository.js';
 import { loginHistoryRepository } from '../repositories/loginHistoryRepository.js';
+import { adminRepository } from '../repositories/adminRepository.js';
 import { tokenService } from './tokenService.js';
 import { googleAuthService } from './googleAuthService.js';
 
@@ -101,9 +102,15 @@ export const authService = {
       // New user — enforce institutional-domain eligibility (AUTH_SYSTEM.md §3).
       const domain = emailDomain(profile.email);
       let university = await universityRepository.findByEmailDomain(domain);
-      if (!university && config.AUTH_ALLOW_ANY_DOMAIN) {
-        // DEV-ONLY open sign-in: attach to the fallback campus.
-        university = await universityRepository.getOrCreateOpenCampus();
+
+      // Check the runtime feature flag: when college_only_login is OFF, allow any domain.
+      if (!university) {
+        const flag = await adminRepository.getFlag('college_only_login');
+        const collegeOnly = flag ? flag.isEnabled : true; // default to college-only if flag missing
+        if (!collegeOnly || config.AUTH_ALLOW_ANY_DOMAIN) {
+          // Open sign-in: attach to the fallback campus.
+          university = await universityRepository.getOrCreateOpenCampus();
+        }
       }
       // Diagnostic (no full-email PII): why a new account was accepted/rejected.
       logger.info(

@@ -9,11 +9,19 @@ import {
   MEDIA_SERVER_EVENTS,
   VoiceUploadCompletedSchema,
   MediaUploadedSchema,
+  VOICE_CALL_CLIENT_EVENTS,
+  VOICE_CALL_SERVER_EVENTS,
+  type CallOfferPayload,
+  type CallAnswerPayload,
+  type IceCandidatePayload,
+  type CallEndedPayload,
 } from '@campusly/shared-types';
 import { config } from '../config/env.js';
 import { logger } from '../config/logger.js';
 import { tokenService } from '../services/tokenService.js';
 import { matchingService } from '../services/matchingService.js';
+import { matchingRepository } from '../repositories/matchingRepository.js';
+import { friendRepository } from '../repositories/friendRepository.js';
 import { messagingService } from '../services/messagingService.js';
 import { notifier } from './notifier.js';
 
@@ -66,12 +74,16 @@ export function createSocketServer(httpServer: HttpServer): SocketIOServer {
     });
 
     // --- Anonymous matching events (SOCKET_EVENTS.md §4) ---
-    socket.on(MATCH_CLIENT_EVENTS.JOIN_QUEUE, (payload?: { genderPreference?: string }) => {
-      const pref = payload?.genderPreference ?? 'all';
-      void matchingService.joinQueue(userId, universityId, pref).catch((err) => {
-        logger.error({ err, userId }, 'join_queue failed');
-      });
-    });
+    socket.on(
+      MATCH_CLIENT_EVENTS.JOIN_QUEUE,
+      (payload?: { genderPreference?: string; matchMode?: string }) => {
+        const pref = payload?.genderPreference ?? 'all';
+        const mode = payload?.matchMode ?? 'text';
+        void matchingService.joinQueue(userId, universityId, pref, mode).catch((err) => {
+          logger.error({ err, userId }, 'join_queue failed');
+        });
+      },
+    );
 
     socket.on(MATCH_CLIENT_EVENTS.LEAVE_QUEUE, () => {
       void matchingService.leaveQueue(userId).catch((err) => {
@@ -171,6 +183,92 @@ export function createSocketServer(httpServer: HttpServer): SocketIOServer {
       attachMedia(MEDIA_SERVER_EVENTS.VOICE_MESSAGE_RECEIVED),
     );
     socket.on(MEDIA_CLIENT_EVENTS.MEDIA_UPLOADED, attachMedia(MEDIA_SERVER_EVENTS.MEDIA_RECEIVED));
+
+    // --- WebRTC Voice Call signaling (peer-to-peer relay within a match session) ---
+
+    /** Helper: validate the user is in the session/friendship, then find the partner id. */
+    const getCallPartner = async (
+      contextType: 'anon_session' | 'friendship',
+      contextId: string,
+    ): Promise<string | null> => {
+      if (contextType === 'anon_session') {
+        const participants = await matchingRepository.getParticipants(contextId);
+        if (!participants.includes(userId)) return null;
+        return participants.find((id) => id !== userId) ?? null;
+      } else if (contextType === 'friendship') {
+        const friendship = await friendRepository.getFriendshipById(contextId);
+        if (!friendship || friendship.deletedAt) return null;
+        if (friendship.userLow === userId) return friendship.userHigh;
+        if (friendship.userHigh === userId) return friendship.userLow;
+      }
+      return null;
+    };
+
+    socket.on(VOICE_CALL_CLIENT_EVENTS.CALL_OFFER, (raw: CallOfferPayload) => {
+      const cType = raw.contextType || 'anon_session';
+      const cId = raw.contextId || raw.sessionId;
+      if (!cId || !raw?.sdp) return;
+      void getCallPartner(cType, cId)
+        .then((partnerId) => {
+          if (!partnerId) return;
+          io.to(`user:${partnerId}`).emit(VOICE_CALL_SERVER_EVENTS.CALL_OFFER, {
+            contextType: cType,
+            contextId: cId,
+            sdp: raw.sdp,
+          } as CallOfferPayload);
+        })
+        .catch((err) => logger.error({ err, userId }, 'call_offer relay failed'));
+    });
+
+    socket.on(VOICE_CALL_CLIENT_EVENTS.CALL_ANSWER, (raw: CallAnswerPayload) => {
+      const cType = raw.contextType || 'anon_session';
+      const cId = raw.contextId || raw.sessionId;
+      if (!cId || !raw?.sdp) return;
+      void getCallPartner(cType, cId)
+        .then((partnerId) => {
+          if (!partnerId) return;
+          io.to(`user:${partnerId}`).emit(VOICE_CALL_SERVER_EVENTS.CALL_ANSWER, {
+            contextType: cType,
+            contextId: cId,
+            sdp: raw.sdp,
+          } as CallAnswerPayload);
+        })
+        .catch((err) => logger.error({ err, userId }, 'call_answer relay failed'));
+    });
+
+    socket.on(VOICE_CALL_CLIENT_EVENTS.ICE_CANDIDATE, (raw: IceCandidatePayload) => {
+      const cType = raw.contextType || 'anon_session';
+      const cId = raw.contextId || raw.sessionId;
+      if (!cId || !raw?.candidate) return;
+      void getCallPartner(cType, cId)
+        .then((partnerId) => {
+          if (!partnerId) return;
+          io.to(`user:${partnerId}`).emit(VOICE_CALL_SERVER_EVENTS.ICE_CANDIDATE, {
+            contextType: cType,
+            contextId: cId,
+            candidate: raw.candidate,
+            sdpMid: raw.sdpMid ?? null,
+            sdpMLineIndex: raw.sdpMLineIndex ?? null,
+          } as IceCandidatePayload);
+        })
+        .catch((err) => logger.error({ err, userId }, 'ice_candidate relay failed'));
+    });
+
+    socket.on(VOICE_CALL_CLIENT_EVENTS.CALL_END, (raw: CallEndedPayload) => {
+      const cType = raw.contextType || 'anon_session';
+      const cId = raw.contextId || raw.sessionId;
+      if (!cId) return;
+      void getCallPartner(cType, cId)
+        .then((partnerId) => {
+          if (!partnerId) return;
+          io.to(`user:${partnerId}`).emit(VOICE_CALL_SERVER_EVENTS.CALL_ENDED, {
+            contextType: cType,
+            contextId: cId,
+            reason: 'hangup',
+          } as CallEndedPayload);
+        })
+        .catch((err) => logger.error({ err, userId }, 'call_end relay failed'));
+    });
 
     socket.on('disconnect', (reason) => {
       logger.info({ socketId: socket.id, userId, reason }, 'Socket disconnected');
